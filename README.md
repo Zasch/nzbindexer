@@ -1,3 +1,4 @@
+![](process.jpg)
 # articles1: Update
 ## Fetch articles from newsgroup(s) to REDIS
 - **Input**
