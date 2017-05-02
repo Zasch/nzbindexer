@@ -1,8 +1,8 @@
 module.exports = {
 	server: {
 		host: 'news.newshosting.com',
-		user: '<username>', // Example doesn't need username
-		pass: '<password>', // Nor password
+		user: '*** username ***',
+		pass: '*** password ***',
 		port: 563,
 		secure: true
 	},
@@ -13,7 +13,7 @@ module.exports = {
 		db: 9,
 		return_buffers: true
 	},
-	group: '<alt.binaries.teevee>',
+	group: 'alt.binaries.teevee',
 	articles_per_connection: 25000,
 	total_articles: 1000000,
 	logger: {
