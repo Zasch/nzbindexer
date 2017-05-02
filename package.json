@@ -1,0 +1,26 @@
+{
+  "name": "nzbindexer",
+  "version": "1.0.0",
+  "description": "usenet indexer",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "usenet",
+    "indexer"
+  ],
+  "author": "Sander",
+  "license": "ISC",
+  "dependencies": {
+    "async": "^2.3.0",
+    "bunyan": "^1.8.10",
+    "easy-table": "^1.1.0",
+    "mongodb": "^2.2.26",
+    "msgpack-lite": "^0.1.26",
+    "nitpin": "^0.2.0",
+    "node-nntp": "^0.6.0",
+    "progress": "^2.0.0",
+    "redis": "^2.7.1"
+  }
+}
