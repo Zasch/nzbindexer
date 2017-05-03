@@ -3,4 +3,4 @@ config.js
 node_modules/
 test.js
 *.gz
-old/
+old/*
