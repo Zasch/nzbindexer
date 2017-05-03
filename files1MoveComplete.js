@@ -54,6 +54,7 @@ function process() {
 			let mapped = mapFileObject(file);
 			mapped.key = mapped.regex + '|' + mapped.file.total + '|' + mapped.email;
 			mapped.complete = true;
+			mapped.created = new Date();
 			inserter.insert(mapped);
 			remover.remove(file);
 		} else {
