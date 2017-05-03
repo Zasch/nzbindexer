@@ -124,6 +124,34 @@ function master() {
 // WORKER
 //------------------------------------------------------------------------------------------------------------------------------------------------
 
+
+// const lokijs = require('lokijs');
+// const lokidb = new lokijs('sandbox');
+// const lokiitems = lokidb.addCollection('items');
+// const util = require('util');
+
+function map(obj) {
+	return {
+		key: obj.email,
+		value: obj
+	};
+}
+
+function reduce(array) {
+	result = {};
+	array.forEach((item) => {
+		if (!result[item.key]) {
+			result[item.key] = {
+				total: 0,
+				items: []
+			};
+		}
+		result[item.key].total++;
+		result[item.key].items.push(item.value);
+	})
+	return result;
+}
+
 function worker() {
 	log.info(`Worker ${process.pid} started`);
 	nitpin = new Nitpin(config.server);
@@ -138,6 +166,11 @@ function worker() {
 		});
 	});
 	taskqueue.on('drain', () => {
+		// console.log('lokistart', new Date().getTime(), process.pid);
+		// var lokiresult = lokiitems.mapReduce(map, reduce);
+		// console.log('lokiresult', util.inspect(lokiresult, {
+		// 	depth: 1
+		// }), new Date().getTime(), process.pid);
 		// taskqueue.stop();
 		// articlequeue.stop(() => {
 		// 	log.info(`Worker ${process.pid} stopped`);
@@ -158,6 +191,7 @@ function processTask(task, callback) {
 			return callback(true);
 		}
 		if (messages) {
+			// lokiitems.insert(messages);
 			messages.forEach((message) => {
 				articlequeue.push(message);
 			});

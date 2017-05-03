@@ -15,7 +15,7 @@ let articlescollection;
 let filteredcollection;
 
 // const numCPUs = require('os').cpus().length;
-const numCPUs = 8;
+const numCPUs = 10;
 
 if (cluster.isMaster) {
 	log.info(`Master ${process.pid} is running`);

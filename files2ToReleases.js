@@ -47,22 +47,30 @@ function finalizer(key, reducedObject) {
 
 database.connect(function (db) {
 	mongoclient = db;
-	log.info('Starting: mapReduce');
-	mongoclient.collection('files_complete').mapReduce(
-		mapper,
-		reducer, {
-			sort: {
-				key: 1
+	database.getLastRun(mongoclient.collection('stats'), 'files2ToReleases', (lastrundate) => {
+		database.updateLastRun(mongoclient.collection('stats'), 'files2ToReleases', () => {});
+		log.info('Starting: mapReduce from', lastrundate);
+		mongoclient.collection('files_complete').mapReduce(
+			mapper,
+			reducer, {
+				query: {
+					created: {
+						$gte: lastrundate
+					}
+				},
+				sort: {
+					key: 1
+				},
+				out: {
+					reduce: "releases"
+				},
+				jsMode: false,
+				verbose: true,
+				finalize: finalizer
 			},
-			out: {
-				reduce: "releases"
-			},
-			jsMode: false,
-			verbose: true,
-			finalize: finalizer
-		},
-		done
-	);
+			done
+		);
+	});
 });
 
 function done(err, resultcollection) {
