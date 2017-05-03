@@ -3,20 +3,21 @@ const log = global.log.child({
 	file: __filename.split(/[\\/]/).pop()
 });
 const cluster = require('cluster');
-const msgpack = require("msgpack-lite");
+
+const RedisQueue = require('./lib/queue');
+const Nitpin = require('./lib/nitpin');
 
 const config = require('./config');
-const redis = require('./lib/redis');
 const database = require('./lib/database');
-const Nitpin = require('./lib/nitpin');
 
 let mongoclient;
 let collection;
-let redisclient;
+let taskqueue;
+let articlequeue;
 let nitpin;
+const numCPUs = 10; // require('os').cpus().length;
 
 if (cluster.isMaster) {
-	const numCPUs = 10; // require('os').cpus().length;
 	for (let i = 0; i < numCPUs; i++) {
 		cluster.fork();
 	}
@@ -65,16 +66,16 @@ function getTasks(group, stats) {
 	const fulltasks = Math.floor(total / config.articles_per_connection);
 	const remaining = total % config.articles_per_connection;
 	for (let i = 0; i < fulltasks; i++) {
-		redisclient.lpush('tasks', JSON.stringify({
+		taskqueue.push({
 			low: stats.high + (i * config.articles_per_connection) + 1,
 			high: stats.high + ((i + 1) * config.articles_per_connection)
-		}));
+		});
 	}
 	if (remaining > 0) {
-		redisclient.lpush('tasks', JSON.stringify({
+		taskqueue.push({
 			low: stats.high + (fulltasks * config.articles_per_connection) + 1,
 			high: stats.high + (fulltasks * config.articles_per_connection) + remaining
-		}));
+		});
 	}
 	mongoclient.collection('stats').updateOne({
 		_id: config.group
@@ -89,58 +90,62 @@ function getTasks(group, stats) {
 
 function master() {
 	log.info(`Master ${process.pid} is running`);
-	redisclient = redis.connect();
 	nitpin = new Nitpin(config.server);
+	taskqueue = new RedisQueue('tasks', true, true);
+	articlequeue = new RedisQueue('articles', true, true);
 	getGroup((group) => {
 		getStats((stats) => {
 			const tasks = getTasks(group, stats);
 			log.info(tasks + ' tasks created');
 		})
-	})
+	});
 	var previous = 0;
-	setInterval(() => {
-		redisclient.llen('articles', (error, count) => {
-			if (count !== previous) {
-				previous = count;
-				log.info('queuedepth articles', count);
-			}
-		});
+	const interval = setInterval(() => {
+		articlequeue.depth((count) => {
+			log.info('queuedepth articles', count);
+		})
 	}, 10000);
+	let disconnected = 0;
+	cluster.on('disconnect', (worker) => {
+		disconnected++;
+		if (disconnected === numCPUs) {
+			console.log("All workers are done");
+			// mongoclient.close();
+			// taskqueue.stop();
+			// articlequeue.stop();
+			// clearInterval(interval);
+			// cluster.disconnect();
+		}
+	});
+
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------------
-//------------------------------------------------------------------------------------------------------------------------------------------------
+// WORKER
 //------------------------------------------------------------------------------------------------------------------------------------------------
 
 function worker() {
 	log.info(`Worker ${process.pid} started`);
-	redisclient = redis.connect();
 	nitpin = new Nitpin(config.server);
-	return brpoplpush('tasks', 'tasks.working');
-}
-
-function brpoplpush(from, to) {
-	redisclient.brpoplpush(from, to, 5, function (error, encoded) {
-		if (encoded) {
-			let decoded = JSON.parse(encoded);
-			// console.log('worker', process.pid, decoded);
-			processTask(decoded, (error) => {
-				if (error) {
-					redisclient.rpush(from, encoded);
-				}
-				redisclient.lrem(to, -1, encoded);
-				return brpoplpush(from, to);
-			});
-		} else {
-			// log.info(`Worker ${process.pid} has no more messages, exiting`);
-			return brpoplpush(from, to);
-			// redisclient.quit();
-			// return setTimeout(() => {
-			// 	return process.exit(0);
-			// }, 5000);
-		}
+	articlequeue = new RedisQueue('articles', true, true);
+	taskqueue = new RedisQueue('tasks', true, true);
+	taskqueue.on('message', (task, result) => {
+		processTask(task, (error) => {
+			if (error) {
+				return result.retry(true);
+			}
+			return result.ok();
+		});
 	});
-};
+	taskqueue.on('drain', () => {
+		// taskqueue.stop();
+		// articlequeue.stop(() => {
+		// 	log.info(`Worker ${process.pid} stopped`);
+		// 	process.exit(0);
+		// });
+	})
+	taskqueue.start();
+}
 
 function processTask(task, callback) {
 	// console.log('process', task);
@@ -154,7 +159,7 @@ function processTask(task, callback) {
 		}
 		if (messages) {
 			messages.forEach((message) => {
-				redisclient.lpush('articles', msgpack.encode(message));
+				articlequeue.push(message);
 			});
 			log.info(task, 'messages', messages.length);
 			return callback(false);

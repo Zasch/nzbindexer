@@ -8,6 +8,7 @@ let mongoclient;
 function mapper() {
 	var mapObject = {
 		parts: [this],
+		part: this.part,
 		totalbytes: this.bytes
 	};
 	return emit(this.key, mapObject);
@@ -16,6 +17,10 @@ function mapper() {
 function reducer(key, values) {
 	var reducedObject = {
 		parts: [],
+		part: {
+			index: 999999999999999999999,
+			total: 0
+		},
 		totalbytes: 0
 	};
 	values.forEach(function (value) {
@@ -23,6 +28,12 @@ function reducer(key, values) {
 			if (reducedObject.parts.indexOf(part) === -1) {
 				reducedObject.parts.push(part);
 				reducedObject.totalbytes += part.bytes;
+				if (part.part.index < reducedObject.part.index) {
+					reducedObject.part.index = part.part.index;
+				}
+				if (part.part.total > reducedObject.part.total) {
+					reducedObject.part.total = part.part.total;
+				}
 			}
 		});
 	});
@@ -47,7 +58,9 @@ database.connect(function (db) {
 						$gte: lastrundate
 					}
 				},
-				sort: {key: 1},
+				sort: {
+					key: 1
+				},
 				out: {
 					reduce: "files"
 				},

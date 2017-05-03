@@ -4,75 +4,70 @@ const log = global.log.child({
 });
 const cluster = require('cluster');
 const msgpack = require("msgpack-lite");
-const redis = require('./lib/redis');
 const database = require('./lib/database');
 const SubjectExtracter = require('./lib/subjectextracter');
+const RedisQueue = require('./lib/queue');
+
 let mongoclient;
-let redisclient;
 let inserter;
+let articlequeue;
+let articlescollection;
+let filteredcollection;
+
 // const numCPUs = require('os').cpus().length;
-const numCPUs = 10;
+const numCPUs = 8;
 
 if (cluster.isMaster) {
 	log.info(`Master ${process.pid} is running`);
-	redisclient = redis.connect();
+	articlequeue = new RedisQueue('articles', true, true);
 	var previous = 'new';
-	var interval = setInterval(() => {
-		redisclient.llen('articles', (error, count) => {
-			if (count !== previous) {
-				previous = count;
-				log.debug('queuedepth articles', count);
-			}
-		});
+	const interval = setInterval(() => {
+		articlequeue.depth((count) => {
+			log.info('queuedepth articles', count);
+		})
 	}, 10000);
 	for (let i = 0; i < numCPUs; i++) {
 		cluster.fork();
 	}
 } else if (cluster.isWorker) {
-	redisclient = redis.connect();
+	log.info(`Worker ${process.pid} started`);
 	database.connect((db) => {
 		if (db) {
 			mongoclient = db;
-			articles = new database.BulkProcessor(mongoclient.collection('articles'), 5000);
-			filtered = new database.BulkProcessor(mongoclient.collection('articles_filtered'), 5000);
-			return brpoplpush('articles', 'articles.working');
+			startWorker();
 		}
 		return;
 	});
-	log.info(`Worker ${process.pid} started`);
 }
 
-function brpoplpush(from, to) {
-	redisclient.brpoplpush(from, to, 5, function (error, encoded) {
-		if (encoded) {
-			let decoded = msgpack.decode(encoded);
-			decoded = Object.assign(decoded, new SubjectExtracter(decoded.subject));
-			decoded.created = new Date();
-			if (!decoded.filter) {
-				decoded.key = decoded.filename + '|' + decoded.part.total + '|' + decoded.email + '|' + decoded.application; // for MR
-				articles.insert(decoded);
-				redisclient.lrem(to, -1, encoded);
-				return brpoplpush(from, to);
-				// database.insertDocument(collection, decoded, (error, result) => {
-				// 	if (error && error.code !== 11000) log.error(error); // hide duplicate key violations
-				// 	redisclient.lrem(to, -1, encoded);
-				// 	return brpoplpush(from, to);
-				// });
-			} else {
-				// TODO: Where to send the filtered ones?
-				// filtered.insert(decoded);
-				redisclient.lrem(to, -1, encoded);
-				return brpoplpush(from, to);
-			}
-		} else {
-			log.info(`Worker ${process.pid} has no more messages, exiting`);
-			articles.flush();
-			filtered.flush();
-			// mongoclient.close();
-			// redisclient.quit();
-			// return setTimeout(() => {
-			// 	return process.exit(0);
-			// }, 5000);
-		}
+function startWorker() {
+	articlequeue = new RedisQueue('articles', true, true);
+	articlescollection = new database.BulkProcessor(mongoclient.collection('articles'), 5000);
+	filteredcollection = new database.BulkProcessor(mongoclient.collection('articles_filtered'), 5000);
+	articlequeue.on('message', (article, result) => {
+		processMessage(article, () => {
+			return result.ok();
+		});
 	});
-};
+	articlequeue.on('drain', () => {
+		console.log('flushing...');
+		articlescollection.flush();
+		filteredcollection.flush();
+		articlequeue.stop();
+	})
+	articlequeue.start();
+}
+
+function processMessage(message, callback) {
+	const article = Object.assign(message, new SubjectExtracter(message.subject));
+	article.created = new Date();
+	if (!article.filter) {
+		// article.key = article.filename + '|' + article.part.total + '|' + article.email + '|' + article.application; // for MR
+		article.key = article.filename + '|' + article.part.total + '|' + article.email; // for MR
+		articlescollection.insert(article);
+	} else {
+		// TODO: Where to send the filtered ones?
+		// filteredcollection.insert(article);
+	}
+	return callback();
+}

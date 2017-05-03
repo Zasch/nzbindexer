@@ -13,12 +13,7 @@ database.connect((db) => {
 	return;
 });
 
-const fields = [
-	'subject',
-	'date',
-	'email',
-	'regex'
-];
+const fields = ['subject', 'filename', 'date', 'email', 'regex'];
 
 function mapReleaseObject(release) {
 	const tmp = release.value.files[0]; // should exist!!!
@@ -55,22 +50,33 @@ function process() {
 	source = mongoclient.collection('releases');
 	remover = new database.BulkProcessor(source, x);
 	inserter = new database.BulkProcessor(mongoclient.collection('releases_complete'), x);
-
+	let stats = {
+		complete: 0,
+		incomplete: 0
+	};
 	const cursor = source.find();
 	cursor.forEach(function (release) {
-		const splitted = release._id.split('|');
-		const total = parseInt(splitted[1]);
+		const total = parseInt(release._id.split('|')[1]);
+		let complete = false;
 		if (release.value.filecount === total) {
-			const mapped = mapReleaseObject(release);
+			complete = true;
+		} else if (release.value.file.index === 0 && release.value.filecount === total + 1) {
+			complete = true;
+		}
+		if (complete) {
+			stats.complete++;
+			let mapped = mapReleaseObject(release);
 			mapped.complete = true;
 			log.info('creating release:', mapped.regex);
 			inserter.insert(mapped);
 			remover.remove(release);
+		} else {
+			stats.incomplete++;
 		}
 	}, function (err) {
 		inserter.flush();
 		remover.flush();
-		log.info('Result: ', inserter.stats(), 'releases_complete created');
+		log.info('Result: ', stats);
 		mongoclient.close();
 	});
 }

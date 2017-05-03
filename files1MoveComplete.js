@@ -13,15 +13,7 @@ database.connect((db) => {
 	return;
 });
 
-const fields = [
-	'application',
-	'subject',
-	'date',
-	'email',
-	'extension',
-	'regex',
-	'file'
-];
+const fields = ['application', 'filename', 'subject', 'date', 'email', 'extension', 'regex', 'file'];
 
 function mapFileObject(file) {
 	const tmp = file.value.parts[0]; // should exist!!!
@@ -44,22 +36,33 @@ function process() {
 	source = mongoclient.collection('files');
 	remover = new database.BulkProcessor(source, x);
 	inserter = new database.BulkProcessor(mongoclient.collection('files_complete'), x);
-
+	let stats = {
+		complete: 0,
+		incomplete: 0
+	};
 	const cursor = source.find();
 	cursor.forEach(function (file) {
 		const total = parseInt(file._id.split('|')[1]);
+		let complete = false;
 		if (file.value.partcount === total) {
-			const mapped = mapFileObject(file);
-			mapped.key = mapped.regex + '|' + mapped.file.total + '|' + mapped.email + '|' + mapped.application;
-			// log.info('creating file:', mapped.subject);
+			complete = true;
+		} else if (file.value.part.index === 0 && file.value.partcount === total + 1) {
+			complete = true;
+		}
+		if (complete) {
+			stats.complete++;
+			let mapped = mapFileObject(file);
+			mapped.key = mapped.regex + '|' + mapped.file.total + '|' + mapped.email;
 			mapped.complete = true;
 			inserter.insert(mapped);
 			remover.remove(file);
+		} else {
+			stats.incomplete++;
 		}
 	}, function (err) {
 		inserter.flush();
 		remover.flush();
-		log.info('Result: ', inserter.stats(), 'files_complete created');
+		log.info('Result: ', stats);
 		mongoclient.close();
 	});
 }

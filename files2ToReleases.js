@@ -8,6 +8,7 @@ let mongoclient;
 function mapper() {
 	var mapObject = {
 		files: [this],
+		file: this.file,
 		totalbytes: this.totalbytes
 	};
 	return emit(this.key, mapObject);
@@ -16,6 +17,10 @@ function mapper() {
 function reducer(key, values) {
 	var reducedObject = {
 		files: [],
+		file: {
+			index: 999999999999999999999,
+			total: 0
+		},
 		totalbytes: 0
 	};
 	values.forEach(function (value) {
@@ -23,6 +28,12 @@ function reducer(key, values) {
 			if (reducedObject.files.indexOf(file) == -1) {
 				reducedObject.files.push(file);
 				reducedObject.totalbytes += file.totalbytes;
+				if (file.file.index < reducedObject.file.index) {
+					reducedObject.file.index = file.file.index;
+				}
+				if (file.file.total > reducedObject.file.total) {
+					reducedObject.file.total = file.file.total;
+				}
 			}
 		});
 	});
@@ -40,7 +51,9 @@ database.connect(function (db) {
 	mongoclient.collection('files_complete').mapReduce(
 		mapper,
 		reducer, {
-			sort: {key: 1},
+			sort: {
+				key: 1
+			},
 			out: {
 				reduce: "releases"
 			},
