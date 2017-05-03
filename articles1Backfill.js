@@ -103,22 +103,25 @@ function master() {
 	var previous = 0;
 	const interval = setInterval(() => {
 		articlequeue.depth((count) => {
-			log.info('queuedepth articles', count);
+			log.debug('queuedepth articles', count);
 		})
-	}, 10000);
+	}, 5000);
 	let disconnected = 0;
 	cluster.on('disconnect', (worker) => {
 		disconnected++;
 		if (disconnected === numCPUs) {
-			console.log("All workers are done");
-			// mongoclient.close();
-			// taskqueue.stop();
-			// articlequeue.stop();
-			// clearInterval(interval);
-			// cluster.disconnect();
+			clearInterval(interval);
+			mongoclient.close();
+			articlequeue.stop();
+			taskqueue.stop();
+			log.info("All workers have finished");
+			setTimeout(() => {
+				log.info(`Master ${process.pid} stopped`);
+				cluster.disconnect();
+				process.exit(0);
+			}, 5000);
 		}
 	});
-
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------------
@@ -126,7 +129,7 @@ function master() {
 //------------------------------------------------------------------------------------------------------------------------------------------------
 
 function worker() {
-	log.info(`Worker ${process.pid} started`);
+	log.debug(`Worker ${process.pid} started`);
 	nitpin = new Nitpin(config.server);
 	articlequeue = new RedisQueue('articles', true, true);
 	taskqueue = new RedisQueue('tasks', true, true);
@@ -139,11 +142,12 @@ function worker() {
 		});
 	});
 	taskqueue.on('drain', () => {
+		log.debug(`Worker ${process.pid} stopped`);
 		// taskqueue.stop();
-		// articlequeue.stop(() => {
-		// 	log.info(`Worker ${process.pid} stopped`);
+		// articlequeue.stop();
+		// setTimeout(() => {
 		// 	process.exit(0);
-		// });
+		// }, 2000);
 	})
 	taskqueue.start();
 }
@@ -162,7 +166,7 @@ function processTask(task, callback) {
 			messages.forEach((message) => {
 				articlequeue.push(message);
 			});
-			log.info(task, 'messages', messages.length);
+			log.debug(task, 'messages', messages.length);
 			return callback(false);
 		} else {
 			return callback(true);

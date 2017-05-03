@@ -103,21 +103,24 @@ function master() {
 	const interval = setInterval(() => {
 		articlequeue.depth((count) => {
 			log.info('queuedepth articles', count);
-		})
-	}, 10000);
+		});
+	}, 5000);
 	let disconnected = 0;
 	cluster.on('disconnect', (worker) => {
 		disconnected++;
 		if (disconnected === numCPUs) {
-			console.log("All workers are done");
-			// mongoclient.close();
-			// taskqueue.stop();
-			// articlequeue.stop();
-			// clearInterval(interval);
-			// cluster.disconnect();
+			clearInterval(interval);
+			mongoclient.close();
+			articlequeue.stop();
+			taskqueue.stop();
+			log.info("All workers have finished");
+			setTimeout(() => {
+				log.info(`Master ${process.pid} stopped`);
+				cluster.disconnect();
+				process.exit(0);
+			}, 5000);
 		}
 	});
-
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------------
@@ -166,17 +169,19 @@ function worker() {
 		});
 	});
 	taskqueue.on('drain', () => {
+		log.debug(`Worker ${process.pid} stopped`);
+		// taskqueue.stop();
+		// articlequeue.stop();
+		// setTimeout(() => {
+		// 	log.debug(`Worker ${process.pid} stopped`);
+		// 	process.exit(0);
+		// }, 2000);
 		// console.log('lokistart', new Date().getTime(), process.pid);
 		// var lokiresult = lokiitems.mapReduce(map, reduce);
 		// console.log('lokiresult', util.inspect(lokiresult, {
 		// 	depth: 1
 		// }), new Date().getTime(), process.pid);
-		// taskqueue.stop();
-		// articlequeue.stop(() => {
-		// 	log.info(`Worker ${process.pid} stopped`);
-		// 	process.exit(0);
-		// });
-	})
+	});
 	taskqueue.start();
 }
 
@@ -195,7 +200,7 @@ function processTask(task, callback) {
 			messages.forEach((message) => {
 				articlequeue.push(message);
 			});
-			log.info(task, 'messages', messages.length);
+			log.debug(task, 'messages', messages.length);
 			return callback(false);
 		} else {
 			return callback(true);

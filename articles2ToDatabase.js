@@ -12,10 +12,10 @@ let mongoclient;
 let inserter;
 let articlequeue;
 let articlescollection;
-let filteredcollection;
+// let filteredcollection;
 
 // const numCPUs = require('os').cpus().length;
-const numCPUs = 10;
+const numCPUs = 9;
 
 if (cluster.isMaster) {
 	log.info(`Master ${process.pid} is running`);
@@ -30,7 +30,7 @@ if (cluster.isMaster) {
 		cluster.fork();
 	}
 } else if (cluster.isWorker) {
-	log.info(`Worker ${process.pid} started`);
+	log.debug(`Worker ${process.pid} started`);
 	database.connect((db) => {
 		if (db) {
 			mongoclient = db;
@@ -43,17 +43,17 @@ if (cluster.isMaster) {
 function startWorker() {
 	articlequeue = new RedisQueue('articles', true, true);
 	articlescollection = new database.BulkProcessor(mongoclient.collection('articles'), 5000);
-	filteredcollection = new database.BulkProcessor(mongoclient.collection('articles_filtered'), 5000);
+	// filteredcollection = new database.BulkProcessor(mongoclient.collection('articles_filtered'), 5000);
 	articlequeue.on('message', (article, result) => {
 		processMessage(article, () => {
 			return result.ok();
 		});
 	});
 	articlequeue.on('drain', () => {
-		console.log('flushing...');
 		articlescollection.flush();
-		filteredcollection.flush();
+		// filteredcollection.flush();
 		articlequeue.stop();
+		return mongoclient.close();
 	})
 	articlequeue.start();
 }
@@ -62,7 +62,6 @@ function processMessage(message, callback) {
 	const article = Object.assign(message, new SubjectExtracter(message.subject));
 	article.created = new Date();
 	if (!article.filter) {
-		// article.key = article.filename + '|' + article.part.total + '|' + article.email + '|' + article.application; // for MR
 		article.key = article.filename + '|' + article.part.total + '|' + article.email; // for MR
 		articlescollection.insert(article);
 	} else {
