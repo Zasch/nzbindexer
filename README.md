@@ -6,15 +6,42 @@
  1. copy config.default.js --> config.js and modify your settings
  1. fire up redis and mongodb
  1. start running scripts (in order!)
+
 ![](process.jpg)
+
+### TODO / Plans:
+ 1. propagate all neccesary field to releases
+ 1. improve incomplete detection / completion (for files, for releases its already getting there)
+ 1. automate flow of execution of scripts
+ 1. integrate with elasticsearch
+ 1. make it work with a list of newsgroups (and accompanying handling of duplicates / crossposts)
+ 1. nzb file generation
+ 1. improve performance
+ 1. put a website on top
+
 # articles1: Update
-## Fetch articles from newsgroup(s) to REDIS
+## Fetch (new) articles from newsgroup(s) to REDIS
 - **Input**
 	1. from CONFIG
 		- articles_per_connection
 		- total_articles
+		- newsgroup
 	1. from MONGODB
-		- stats
+		- stats (previous run)
+- **Output**
+	1. to REDIS
+		- articles
+	1. to MONGODB
+		- updated stats
+# articles1: Backfill
+## Fetch (backfill) articles from newsgroup(s) to REDIS
+- **Input**
+	1. from CONFIG
+		- articles_per_connection
+		- total_articles
+		- newsgroup
+	1. from MONGODB
+		- stats (previous run)
 - **Output**
 	1. to REDIS
 		- articles
@@ -22,15 +49,16 @@
 		- stats
 # articles2: ToDatabase
 ## Move articles from REDIS to MONGODB
+### This is too slow!
 - **Input**
 	1. from REDIS
-		- articles_per_connection
-		- total_articles
+		- articles
 - **Output**
 	1. to MONGODB
 		- Collection "articles"
 # articles3: ToFiles
 ## MONGODB mapReduce from articles to files
+### This is too slow!
 - **Input**
 	1. from MONGODB
 		- lastrun (from stats)
@@ -38,6 +66,31 @@
 - **Output**
 	1. to MONGODB
 		- Collection "files" is **updated** with articles
-		- lastrun us updated
+		- lastrun is updated
+# articles4: Cleanup
+## MONGODB clean articles
+- **Input**
+	1. from MONGODB
+		- Collection "files"
+- **Output**
+	1. to MONGODB
+		- Clean collection "articles"
+# files1: Move Complete
+## MONGODB move complete files
+- **Input**
+	1. from MONGODB
+		- Collection "files"
+- **Output**
+	1. to MONGODB
+		- Collection "files_complete"
+# files2: ToReleases
+## MONGODB mapReduce from files_complete to releases
+- **Input**
+	1. from MONGODB
+		- Collection "files_complete"
+- **Output**
+	1. to MONGODB
+		- Collection "releases" is **updated** with files
+
 
 https://stackedit.io/editor
