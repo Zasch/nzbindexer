@@ -1,3 +1,7 @@
+require('./lib/logger'); // configure global logger
+const log = global.log.child({
+	file: __filename.split(/[\\/]/).pop()
+});
 const lokijs = require('lokijs');
 const lokidb = new lokijs('sandbox');
 const lokiitems = lokidb.addCollection('items');
@@ -22,9 +26,11 @@ function getReleases(callback) {
 }
 
 function moveIncompleteReleases(documents) {
+	releases = new database.BulkProcessor(mongoclient.collection('releases'), 5000);
+	releases_complete = new database.BulkProcessor(mongoclient.collection('releases_complete'), 5000);
+
 	lokiitems.insert(documents);
-	console.log('loaded', lokiitems.count());
-	mongoclient.close();
+	log.info('loaded', lokiitems.count(), 'releases from database');
 	const regexes = [
 		/[ ._-]sc\d{1,3}/,
 		/[0-9]$/,
@@ -32,17 +38,34 @@ function moveIncompleteReleases(documents) {
 	];
 	const completed = regexes.reduce((prev, current) => {
 		const items = processRegex(lokiitems, current);
+		items.forEach((item)=> {
+			item.value.ids.forEach((id)=>{
+				log.debug(id, 'can be deleted');
+				releases.remove({_id: id});
+			});
+		});
 		// delete logic here
-		// don't forget to remove duplicated
 		return prev.concat(items);
 	}, []);
 	const toinsert = completed.map((item) => {
 		const m = mapObject(item.value.items, item.key);
-		// insert logic here
 		return m;
 	});
-	// console.log('completed', completed);
-	// console.log('toinsert', toinsert);
+	const unique = toinsert.reduce((prev, current)=>{
+		if (prev.indexOf(current) === -1) {
+			prev.push(current);
+		} else {
+			log.debug('duplicate', current);
+		}
+		return prev;
+	},[]);
+	unique.forEach((release)=>{
+		log.debug(release._id, 'can be inserted');
+		releases_complete.insert(release);
+	});
+	log.info('inserted', unique.length);
+	releases_complete.flush();
+	releases.flush();
 }
 
 function map(regex, obj) {
