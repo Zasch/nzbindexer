@@ -19,9 +19,6 @@
     "lokijs": "^1.4.3",
     "mongodb": "^2.2.26",
     "msgpack-lite": "^0.1.26",
-    "nitpin": "^0.2.0",
-    "node-nntp": "^0.6.0",
-    "progress": "^2.0.0",
     "redis": "^2.7.1"
   }
 }

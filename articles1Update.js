@@ -127,12 +127,6 @@ function master() {
 // WORKER
 //------------------------------------------------------------------------------------------------------------------------------------------------
 
-
-// const lokijs = require('lokijs');
-// const lokidb = new lokijs('sandbox');
-// const lokiitems = lokidb.addCollection('items');
-// const util = require('util');
-
 function map(obj) {
 	return {
 		key: obj.email,
@@ -176,11 +170,6 @@ function worker() {
 		// 	log.debug(`Worker ${process.pid} stopped`);
 		// 	process.exit(0);
 		// }, 2000);
-		// console.log('lokistart', new Date().getTime(), process.pid);
-		// var lokiresult = lokiitems.mapReduce(map, reduce);
-		// console.log('lokiresult', util.inspect(lokiresult, {
-		// 	depth: 1
-		// }), new Date().getTime(), process.pid);
 	});
 	taskqueue.start();
 }
@@ -196,7 +185,6 @@ function processTask(task, callback) {
 			return callback(true);
 		}
 		if (messages) {
-			// lokiitems.insert(messages);
 			messages.forEach((message) => {
 				articlequeue.push(message);
 			});

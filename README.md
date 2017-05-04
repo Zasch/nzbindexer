@@ -5,7 +5,7 @@
  1. npm install
  1. copy config.default.js --> config.js and modify your settings
  1. fire up redis and mongodb
- 1. start running scripts (in order!)
+ 1. start running scripts (nb: in order!)
 
 ![](process.jpg)
 

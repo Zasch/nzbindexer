@@ -5,12 +5,12 @@ const log = global.log.child({
 const async = require('async');
 const database = require('./lib/database');
 let mongoclient;
-let remover;
+let articles;
 
 database.connect((db) => {
 	if (db) {
 		mongoclient = db;
-		remover = new database.BulkProcessor(mongoclient.collection('articles'), 5000);
+		articles = new database.BulkProcessor(mongoclient.collection('articles'), 5000);
 		return process();
 	}
 	return;
@@ -30,14 +30,11 @@ function getFiles(callback) {
 	source = mongoclient.collection('files');
 	const cursor = source.find();
 	cursor.forEach(function (file) {
-		// file.parts.forEach((part) => {
-		// 	remover.remove({_id: part});
-		// })
 		file.value.parts.forEach((part) => {
-			remover.remove({_id: part._id});
+			articles.remove({_id: part._id});
 		})
 	}, function (error, result) {
-		remover.flush();
+		articles.flush();
 		log.info('result: deleted', remover.stats());
 		return callback();
 	});

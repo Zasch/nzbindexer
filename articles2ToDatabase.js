@@ -12,7 +12,6 @@ let mongoclient;
 let inserter;
 let articlequeue;
 let articlescollection;
-// let filteredcollection;
 
 // const numCPUs = require('os').cpus().length;
 const numCPUs = 9;
