@@ -91,6 +91,29 @@
 - **Output**
 	1. to MONGODB
 		- Collection "releases" is **updated** with files
-
+# files3: Cleanup
+## MONGODB clean files
+- **Input**
+	1. from MONGODB
+		- Collection "release"
+- **Output**
+	1. to MONGODB
+		- Clean collection "files_complete"
+# releases1: Move Complete
+## MONGODB move complete releases
+- **Input**
+	1. from MONGODB
+		- Collection "releases"
+- **Output**
+	1. to MONGODB
+		- Collection "releases_complete"
+# releases1: Move Incomplete
+## MONGODB move releases (althoug complete, that are not found easily... weird index/total etc)
+- **Input**
+	1. from MONGODB
+		- Collection "releases"
+- **Output**
+	1. to MONGODB
+		- Collection "releases_complete"
 
 https://stackedit.io/editor
