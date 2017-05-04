@@ -40,5 +40,10 @@
 		"request": "launch",
 		"name": "releases1MoveComplete",
 		"program": "${workspaceRoot}/releases1MoveComplete.js"
+	}, {
+		"type": "node",
+		"request": "launch",
+		"name": "releases1MoveIncomplete",
+		"program": "${workspaceRoot}/releases1MoveIncomplete.js"
 	}]
 }
