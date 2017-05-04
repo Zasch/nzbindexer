@@ -9,8 +9,8 @@
 
 ![](process.jpg)
 
-### TODO / Plans:
- 1. propagate all neccesary field to releases
+### TODO / Plans (not necessarily in order):
+ 1. propagate all neccesary fields to releases
  1. improve incomplete detection / completion (for files, for releases its already getting there)
  1. automate flow of execution of scripts
  1. integrate with elasticsearch
@@ -108,7 +108,7 @@
 	1. to MONGODB
 		- Collection "releases_complete"
 # releases1: Move Incomplete
-## MONGODB move releases (althoug complete, that are not found easily... weird index/total etc)
+## MONGODB move releases (although complete, that are not found easily... weird index/total, difficult commonon denominator, etc)
 - **Input**
 	1. from MONGODB
 		- Collection "releases"
