@@ -1,3 +1,11 @@
+# This is pretty much in early stages still
+## It works.... but performance could be better and it's missing some stuff to compile releases from incomplete files... no UI... no elasticsearch integration yet... if you want to help... lemme know ;-)
+### Basic Instructions:
+ 1. clone repo
+ 1. npm install
+ 1. copy config.default.js --> config.js and modify your settings
+ 1. fire up redis and mongodb
+ 1. start running scripts (in order!)
 ![](process.jpg)
 # articles1: Update
 ## Fetch articles from newsgroup(s) to REDIS
