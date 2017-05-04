@@ -49,7 +49,8 @@
 		- stats
 # articles2: ToDatabase
 ## Move articles from REDIS to MONGODB
-### This is too slow!
+### This is where the parsing of the articles is performed
+#### This is too slow!
 - **Input**
 	1. from REDIS
 		- articles
@@ -58,7 +59,7 @@
 		- Collection "articles"
 # articles3: ToFiles
 ## MONGODB mapReduce from articles to files
-### This is too slow!
+#### This is too slow!
 - **Input**
 	1. from MONGODB
 		- lastrun (from stats)
@@ -69,6 +70,7 @@
 		- lastrun is updated
 # articles4: Cleanup
 ## MONGODB clean articles
+#### This is too slow!
 - **Input**
 	1. from MONGODB
 		- Collection "files"
