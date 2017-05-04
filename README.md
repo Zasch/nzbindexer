@@ -18,6 +18,7 @@
  1. nzb file generation
  1. improve performance
  1. put a website on top
+ 1. automaticaly generate notifications (email / other) based on configurable search critera
 
 # articles1: Update
 ## Fetch (new) articles from newsgroup(s) to REDIS
