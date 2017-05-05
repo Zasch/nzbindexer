@@ -9,6 +9,7 @@ let articles;
 
 database.connect((db) => {
 	if (db) {
+		log.info('starting cleanup');
 		mongoclient = db;
 		articles = new database.BulkProcessor(mongoclient.collection('articles'), 5000);
 		return process();
@@ -35,7 +36,7 @@ function getFiles(callback) {
 		})
 	}, function (error, result) {
 		articles.flush();
-		log.info('result: deleted', remover.stats());
+		log.info('result: deleted', articles.stats());
 		return callback();
 	});
 }

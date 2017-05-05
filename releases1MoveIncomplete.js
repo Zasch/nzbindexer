@@ -38,10 +38,12 @@ function moveIncompleteReleases(documents) {
 	];
 	const completed = regexes.reduce((prev, current) => {
 		const items = processRegex(lokiitems, current);
-		items.forEach((item)=> {
-			item.value.ids.forEach((id)=>{
+		items.forEach((item) => {
+			item.value.ids.forEach((id) => {
 				log.debug(id, 'can be deleted');
-				releases.remove({_id: id});
+				releases.remove({
+					_id: id
+				});
 			});
 		});
 		// delete logic here
@@ -51,21 +53,25 @@ function moveIncompleteReleases(documents) {
 		const m = mapObject(item.value.items, item.key);
 		return m;
 	});
-	const unique = toinsert.reduce((prev, current)=>{
+	const unique = toinsert.reduce((prev, current) => {
 		if (prev.indexOf(current) === -1) {
 			prev.push(current);
 		} else {
 			log.debug('duplicate', current);
 		}
 		return prev;
-	},[]);
-	unique.forEach((release)=>{
+	}, []);
+	unique.forEach((release) => {
 		log.debug(release._id, 'can be inserted');
 		releases_complete.insert(release);
 	});
 	log.info('inserted', unique.length);
 	releases_complete.flush();
-	releases.flush();
+	releases.flush(() => {
+		setTimeout(()=>{
+			mongoclient.close();
+		},500);
+	});
 }
 
 function map(regex, obj) {

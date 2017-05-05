@@ -3,7 +3,6 @@ const log = global.log.child({
 	file: __filename.split(/[\\/]/).pop()
 });
 const cluster = require('cluster');
-const msgpack = require("msgpack-lite");
 const database = require('./lib/database');
 const SubjectExtracter = require('./lib/subjectextracter');
 const RedisQueue = require('./lib/queue');
@@ -28,8 +27,28 @@ if (cluster.isMaster) {
 	for (let i = 0; i < numCPUs; i++) {
 		cluster.fork();
 	}
+	let done = 0;
+	cluster.on('message', (worker, cmd) => {
+		if (cmd = 'done') {
+			done++;
+			if (done === numCPUs) {
+				log.info("All workers are done");
+				clearInterval(interval);
+				articlequeue.stop();
+				cluster.disconnect();
+			}
+		}
+	});
+	let exited = 0;
+	cluster.on('exit', function (worker, code, signal) {
+		exited++;
+		if (exited === numCPUs) {
+			log.info("All workers have exited");
+			process.exit(0);
+		}
+	});
 } else if (cluster.isWorker) {
-	log.debug(`Worker ${process.pid} started`);
+	// log.debug(`Worker ${process.pid} started`);
 	database.connect((db) => {
 		if (db) {
 			mongoclient = db;
@@ -42,18 +61,29 @@ if (cluster.isMaster) {
 function startWorker() {
 	articlequeue = new RedisQueue('articles', true, true);
 	articlescollection = new database.BulkProcessor(mongoclient.collection('articles'), 5000);
-	// filteredcollection = new database.BulkProcessor(mongoclient.collection('articles_filtered'), 5000);
-	articlequeue.on('message', (article, result) => {
-		processMessage(article, () => {
-			return result.ok();
+	filteredcollection = new database.BulkProcessor(mongoclient.collection('articles_filtered'), 5000);
+	timeout = undefined;
+	articlequeue.on('message', (articles, result) => {
+		if (timeout) clearTimeout(timeout);
+		articles.forEach(function (article) {
+			processMessage(article, () => {});
+		});
+		return result.ok();
+	});
+	process.on('disconnect', () => {
+		filteredcollection.flush();
+		articlequeue.stop();
+		articlescollection.flush(()=>{
+			mongoclient.close();
 		});
 	});
 	articlequeue.on('drain', () => {
-		articlescollection.flush();
-		// filteredcollection.flush();
-		articlequeue.stop();
-		return mongoclient.close();
-	})
+		timeout = setTimeout(() => {
+			process.send({
+				cmd: 'done'
+			});
+		}, 200);
+	});
 	articlequeue.start();
 }
 
@@ -65,7 +95,8 @@ function processMessage(message, callback) {
 		articlescollection.insert(article);
 	} else {
 		// TODO: Where to send the filtered ones?
-		// filteredcollection.insert(article);
+		filteredcollection.insert(article);
 	}
-	return callback();
+	// return callback();
+	return;
 }

@@ -7,6 +7,7 @@ let mongoclient;
 
 database.connect((db) => {
 	if (db) {
+		log.info('starting move');
 		mongoclient = db;
 		return process();
 	}

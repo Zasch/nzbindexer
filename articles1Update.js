@@ -51,7 +51,7 @@ function getStats(callback) {
 	})
 }
 
-function getTasks(group, stats) {
+function pushUpdateTasks(group, stats, callback) {
 	if (!stats) {
 		stats = {
 			high: group.high - config.total_articles,
@@ -84,41 +84,48 @@ function getTasks(group, stats) {
 		low: stats.low
 	}, {
 		upsert: true
+	}, () => {
+		return callback(fulltasks + (remaining > 0 ? 1 : 0));
 	});
-	return fulltasks + (remaining > 0 ? 1 : 0);
 }
 
 function master() {
-	log.info(`Master ${process.pid} is running`);
+	// log.info(`Master ${process.pid} is running`);
 	nitpin = new Nitpin(config.server);
 	taskqueue = new RedisQueue('tasks', true, true);
 	articlequeue = new RedisQueue('articles', true, true);
 	getGroup((group) => {
 		getStats((stats) => {
-			const tasks = getTasks(group, stats);
-			log.info(tasks + ' tasks created');
+			pushUpdateTasks(group, stats, (tasks) => {
+				log.info(tasks + ' tasks created');
+				mongoclient.close();
+			});
 		})
 	});
-	var previous = 0;
 	const interval = setInterval(() => {
 		articlequeue.depth((count) => {
 			log.info('queuedepth articles', count);
 		});
 	}, 5000);
-	let disconnected = 0;
-	cluster.on('disconnect', (worker) => {
-		disconnected++;
-		if (disconnected === numCPUs) {
-			clearInterval(interval);
-			mongoclient.close();
-			articlequeue.stop();
-			taskqueue.stop();
-			log.info("All workers have finished");
-			setTimeout(() => {
-				log.info(`Master ${process.pid} stopped`);
+	let done = 0;
+	cluster.on('message', (worker, cmd) => {
+		if (cmd = 'done') {
+			done++;
+			if (done === numCPUs) {
+				log.info("All workers are done");
+				clearInterval(interval);
+				taskqueue.stop();
+				articlequeue.stop();
 				cluster.disconnect();
-				process.exit(0);
-			}, 5000);
+			}
+		}
+	});
+	let exited = 0;
+	cluster.on('exit', function (worker, code, signal) {
+		exited++;
+		if (exited === numCPUs) {
+			log.info("All workers have exited");
+			process.exit(0);
 		}
 	});
 }
@@ -150,11 +157,13 @@ function reduce(array) {
 }
 
 function worker() {
-	log.info(`Worker ${process.pid} started`);
+	// log.info(`Worker ${process.pid} started`);
 	nitpin = new Nitpin(config.server);
 	articlequeue = new RedisQueue('articles', true, true);
 	taskqueue = new RedisQueue('tasks', true, true);
+	timeout = undefined;
 	taskqueue.on('message', (task, result) => {
+		if (timeout) clearTimeout(timeout);
 		processTask(task, (error) => {
 			if (error) {
 				return result.retry(true);
@@ -162,20 +171,24 @@ function worker() {
 			return result.ok();
 		});
 	});
+	process.on('disconnect', () => {
+		articlequeue.stop();
+		taskqueue.stop();
+		return setTimeout(() => {
+			process.exit(0);
+		}, 500);
+	});
 	taskqueue.on('drain', () => {
-		log.debug(`Worker ${process.pid} stopped`);
-		// taskqueue.stop();
-		// articlequeue.stop();
-		// setTimeout(() => {
-		// 	log.debug(`Worker ${process.pid} stopped`);
-		// 	process.exit(0);
-		// }, 2000);
+		timeout = setTimeout(() => {
+			process.send({
+				cmd: 'done'
+			});
+		}, 200);
 	});
 	taskqueue.start();
 }
 
 function processTask(task, callback) {
-	// console.log('process', task);
 	nitpin.over(config.group, task.low, task.high, function gotMessages(error, messages) {
 		if (error) {
 			log.error({
@@ -185,9 +198,7 @@ function processTask(task, callback) {
 			return callback(true);
 		}
 		if (messages) {
-			messages.forEach((message) => {
-				articlequeue.push(message);
-			});
+			articlequeue.push(messages);
 			log.debug(task, 'messages', messages.length);
 			return callback(false);
 		} else {

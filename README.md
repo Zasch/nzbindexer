@@ -7,6 +7,10 @@
  1. fire up redis and mongodb
  1. start running scripts (nb: in order!)
 
+**NB:** If you run script and want proper output, you run them with the following command:
+
+`node articles1Update.js  | ./node_modules/.bin/bunyan`
+
 ![](process.jpg)
 
 ### TODO / Plans (not necessarily in order):
@@ -19,6 +23,10 @@
  1. improve performance
  1. put a website on top
  1. automaticaly generate notifications (email / other) based on configurable search critera
+
+### Last updates:
+1. All scripts now exit properly
+2. **Significantly** improved the performance of "articles2ToDatabase.js", blazing fast it is now
 
 # articles1: Update
 ## Fetch (new) articles from newsgroup(s) to REDIS

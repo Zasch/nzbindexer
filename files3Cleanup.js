@@ -9,6 +9,7 @@ let remover;
 
 database.connect((db) => {
 	if (db) {
+		log.info('starting cleanup');
 		mongoclient = db;
 		remover = new database.BulkProcessor(mongoclient.collection('files_complete'), 5000);
 		return process();
