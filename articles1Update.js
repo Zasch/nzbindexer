@@ -90,7 +90,6 @@ function pushUpdateTasks(group, stats, callback) {
 }
 
 function master() {
-	// log.info(`Master ${process.pid} is running`);
 	nitpin = new Nitpin(config.server);
 	taskqueue = new RedisQueue('tasks', true, true);
 	articlequeue = new RedisQueue('articles', true, true);
