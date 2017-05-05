@@ -93,8 +93,8 @@ function pushBackfillTasks(group, stats, callback) {
 function master() {
 	// log.info(`Master ${process.pid} is running`);
 	nitpin = new Nitpin(config.server);
-	taskqueue = new RedisQueue('tasks', true, true);
-	articlequeue = new RedisQueue('articles', true, true);
+	taskqueue = new RedisQueue('tasks', true, false);
+	articlequeue = new RedisQueue('articles', true, false);
 	getGroup((group) => {
 		getStats((stats) => {
 			pushBackfillTasks(group, stats, (tasks) => {
@@ -160,8 +160,8 @@ function reduce(array) {
 function worker() {
 	// log.info(`Worker ${process.pid} started`);
 	nitpin = new Nitpin(config.server);
-	articlequeue = new RedisQueue('articles', true, true);
-	taskqueue = new RedisQueue('tasks', true, true);
+	articlequeue = new RedisQueue('articles', true, false);
+	taskqueue = new RedisQueue('tasks', true, false);
 	timeout = undefined;
 	taskqueue.on('message', (task, result) => {
 		if (timeout) clearTimeout(timeout);
@@ -200,7 +200,7 @@ function processTask(task, callback) {
 		}
 		if (messages) {
 			articlequeue.push(messages);
-			log.debug(task, 'messages', messages.length);
+			// log.debug(task, 'messages', messages.length);
 			return callback(false);
 		} else {
 			return callback(true);

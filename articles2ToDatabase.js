@@ -17,7 +17,7 @@ const numCPUs = 9;
 
 if (cluster.isMaster) {
 	log.info(`Master ${process.pid} is running`);
-	articlequeue = new RedisQueue('articles', true, true);
+	articlequeue = new RedisQueue('articles', true, false);
 	var previous = 'new';
 	const interval = setInterval(() => {
 		articlequeue.depth((count) => {
@@ -59,7 +59,7 @@ if (cluster.isMaster) {
 }
 
 function startWorker() {
-	articlequeue = new RedisQueue('articles', true, true);
+	articlequeue = new RedisQueue('articles', true, false);
 	articlescollection = new database.BulkProcessor(mongoclient.collection('articles'), 5000);
 	filteredcollection = new database.BulkProcessor(mongoclient.collection('articles_filtered'), 5000);
 	timeout = undefined;
@@ -94,7 +94,9 @@ function processMessage(message, callback) {
 		article.key = article.filename + '|' + article.part.total + '|' + article.email; // for MR
 		articlescollection.insert(article);
 	} else {
-		// TODO: Where to send the filtered ones?
+		article.messageid = article._id;
+		article._id = article.subject;
+		delete article.subject;
 		filteredcollection.insert(article);
 	}
 	// return callback();

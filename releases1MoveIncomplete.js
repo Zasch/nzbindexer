@@ -40,7 +40,7 @@ function moveIncompleteReleases(documents) {
 		const items = processRegex(lokiitems, current);
 		items.forEach((item) => {
 			item.value.ids.forEach((id) => {
-				log.debug(id, 'can be deleted');
+				// log.debug(id, 'can be deleted');
 				releases.remove({
 					_id: id
 				});
@@ -62,7 +62,7 @@ function moveIncompleteReleases(documents) {
 		return prev;
 	}, []);
 	unique.forEach((release) => {
-		log.debug(release._id, 'can be inserted');
+		log.debug('creating release:', release.regex);
 		releases_complete.insert(release);
 	});
 	log.info('inserted', unique.length);

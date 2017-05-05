@@ -64,8 +64,8 @@ database.connect(function (db) {
 				out: {
 					reduce: "files"
 				},
-				jsMode: false,
-				verbose: true,
+				jsMode: true,
+				verbose: false,
 				finalize: finalizer
 			},
 			done
