@@ -1,5 +1,6 @@
 #!/bin/sh
 echo 'Starting update requence'
+
 node articles1Update.js  | ./node_modules/.bin/bunyan
 node articles2ToDatabase.js  | ./node_modules/.bin/bunyan
 node articles3ToFiles.js | ./node_modules/.bin/bunyan

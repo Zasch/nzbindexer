@@ -11,12 +11,16 @@
 
 `node articles1Update.js  | ./node_modules/.bin/bunyan`
 
+### Added Scripts
+`./update.sh`
+`./backfill.sh`
+
 ![](process.jpg)
 
 ### TODO / Plans (not necessarily in order):
  1. propagate all neccesary fields to releases
  1. improve incomplete detection / completion (for files, for releases its already getting there)
- 1. automate flow of execution of scripts
+ 1. ~~automate flow of execution of scripts~~
  1. integrate with elasticsearch
  1. make it work with a list of newsgroups (and accompanying handling of duplicates / crossposts)
  1. nzb file generation
