@@ -95,7 +95,7 @@ function processMessage(message, callback) {
 		articlescollection.insert(article);
 	} else {
 		article.messageid = article._id;
-		article._id = article.subject;
+		article._id = article.subject + '|' + article.email;
 		delete article.subject;
 		filteredcollection.insert(article);
 	}

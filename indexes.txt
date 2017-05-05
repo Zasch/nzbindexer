@@ -1,0 +1,13 @@
+index on: nzbindex.articles properties: { v: 1, unique: true, key: { filename: 1, part.index: 1, email: 1, application: 1 }, name: "reject_duplicate_articles" }
+index on: nzbindex.articles properties: { v: 1, key: { created: 1 }, name: "created" }
+index on: nzbindex.articles properties: { v: 1, key: { key: 1 }, name: "key" }
+
+index on: nzbindex.files properties: { v: 1, key: { key: 1 }, name: "key" }
+
+index on: nzbindex.files_complete properties: { v: 1, key: { key: 1 }, name: "key" }
+index on: nzbindex.files_complete properties: { v: 1, key: { date: 1 }, name: "date" }
+index on: nzbindex.files_complete properties: { v: 1, key: { created: 1 }, name: "created" }
+
+index on: nzbindex.releases properties: { v: 1, key: { key: 1 }, name: "key" }
+
+index on: nzbindex.releases_complete properties: { v: 1, key: { key: 1 }, name: "key" }
