@@ -51,16 +51,6 @@ function finalizer(key, reducedObject) {
 	return reducedObject;
 };
 
-function done(err, resultcollection) {
-	log.info('Finished: mapReduce');
-	if (err) {
-		return log.error('ERROR!!!', err);
-	};
-	if (resultcollection) {
-		return cleanup(resultcollection);
-	}
-}
-
 database.connect(function (db) {
 
 	mongoclient = db;
@@ -91,6 +81,16 @@ database.connect(function (db) {
 	});
 });
 
+function done(err, resultcollection) {
+	log.info('Finished: mapReduce');
+	if (err) {
+		return log.error('ERROR!!!', err);
+	}
+	if (resultcollection) {
+		return cleanup(resultcollection);
+	}
+}
+
 function cleanup(resultcollection) {
 	resultcollection.count(function (err, count) {
 		if (err) {
@@ -108,13 +108,6 @@ function cleanup(resultcollection) {
 			});
 			cursor.forEach(function (file) {
 				const key = file.value.parts[0].key;
-				// deletes.push({
-				// 	deleteMany: {
-				// 		filter: {
-				// 			key: key
-				// 		}
-				// 	}
-				// });
 				file.value.parts.forEach((part) => {
 					test++;
 					deletes.push({

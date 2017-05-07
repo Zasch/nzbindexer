@@ -113,6 +113,15 @@ const indexes = {
 		keys: {
 			"key": 1
 		}
+	}, {
+		options: {
+			name: 'modified',
+			unique: false,
+			background: false
+		},
+		keys: {
+			"value.modified": 1
+		}
 	}],
 	releases_complete: [{
 		options: {

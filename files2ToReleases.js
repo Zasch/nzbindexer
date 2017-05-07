@@ -1,9 +1,11 @@
+require('./lib/config');
 require('./lib/logger'); // configure global logger
 const log = global.log.child({
 	file: __filename.split(/[\\/]/).pop()
 });
 const database = require('./lib/database');
 let mongoclient;
+const started = new Date();
 
 function mapper() {
 	var mapObject = {
@@ -42,6 +44,7 @@ function reducer(key, values) {
 
 function finalizer(key, reducedObject) {
 	reducedObject.filecount = reducedObject.files.length;
+	reducedObject.modified = new Date();
 	return reducedObject;
 };
 
@@ -76,12 +79,56 @@ database.connect(function (db) {
 function done(err, resultcollection) {
 	log.info('Finished: mapReduce');
 	if (err) {
-		return console.log(err)
-	};
+		return log.error('ERROR!!!', err);
+	}
 	if (resultcollection) {
-		resultcollection.count(function (err, count) {
-			log.info('Result: created', count, 'releases');
-			mongoclient.close();
-		});
+		return cleanup(resultcollection);
 	}
 }
+
+function cleanup(resultcollection) {
+	resultcollection.count(function (err, count) {
+		if (err) {
+			return log.error(error);
+		}
+		let deletes = [];
+		log.info('Result: created/updateted', count, 'files');
+		log.info('Starting: cleanup');
+		let test = 0;
+		if (count > 0) {
+			const cursor = resultcollection.find({
+				'value.modified': {
+					$gte: started
+				}
+			});
+			cursor.forEach(function (release) {
+				release.value.files.forEach((file) => {
+					test++;
+					deletes.push({
+						deleteOne: {
+							filter: {
+								_id: file._id
+							}
+						}
+					})
+				});
+			}, function (error, result) {
+				log.info(`Cleanup: found ${deletes.length} to be deleted`);
+				if (deletes.length > 0) {
+					mongoclient.collection('files_complete').bulkWrite(deletes, {
+						ordered: false
+					}, function (error, result) {
+						if (err) return log.error(error);
+						log.info('Result: deleted', result.nRemoved);
+						return mongoclient.close();
+					});
+				} else {
+					log.info('Result: deleted', 0);
+					return mongoclient.close();
+				}
+			});
+		} else {
+			return log.info('Finished: cleanup');
+		}
+	});
+};
