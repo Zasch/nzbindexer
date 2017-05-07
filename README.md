@@ -5,6 +5,7 @@
  1. npm install
  1. copy config.default.js --> config.js and modify your settings
  1. fire up redis and mongodb
+ 1. run node createCollections.js
  1. start running scripts (nb: in order!)
 
 **NB:** If you run script and want proper output, you run them with the following command:
