@@ -1,3 +1,4 @@
+require('./lib/config');
 require('./lib/logger'); // configure global logger
 const log = global.log.child({
 	file: __filename.split(/[\\/]/).pop()
@@ -46,10 +47,9 @@ function mapReleaseObject(release) {
 }
 
 function process() {
-	const x = 5000;
 	source = mongoclient.collection('releases');
-	remover = new database.BulkProcessor(source, x);
-	inserter = new database.BulkProcessor(mongoclient.collection('releases_complete'), x);
+	remover = new database.BulkProcessor(source, global.config.bulksize);
+	inserter = new database.BulkProcessor(mongoclient.collection('releases_complete'), global.config.bulksize);
 	let stats = {
 		complete: 0,
 		incomplete: 0

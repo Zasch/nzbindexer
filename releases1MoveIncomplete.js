@@ -1,3 +1,4 @@
+require('./lib/config');
 require('./lib/logger'); // configure global logger
 const log = global.log.child({
 	file: __filename.split(/[\\/]/).pop()
@@ -26,8 +27,8 @@ function getReleases(callback) {
 }
 
 function moveIncompleteReleases(documents) {
-	releases = new database.BulkProcessor(mongoclient.collection('releases'), 5000);
-	releases_complete = new database.BulkProcessor(mongoclient.collection('releases_complete'), 5000);
+	releases = new database.BulkProcessor(mongoclient.collection('releases'), global.config.bulksize);
+	releases_complete = new database.BulkProcessor(mongoclient.collection('releases_complete'), global.config.bulksize);
 
 	lokiitems.insert(documents);
 	log.info('loaded', lokiitems.count(), 'releases from database');
@@ -62,7 +63,7 @@ function moveIncompleteReleases(documents) {
 		return prev;
 	}, []);
 	unique.forEach((release) => {
-		log.debug('creating release:', release.regex);
+		log.info('creating release:', release.regex);
 		releases_complete.insert(release);
 	});
 	log.info('inserted', unique.length);

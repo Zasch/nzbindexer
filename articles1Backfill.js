@@ -1,24 +1,32 @@
+require('./lib/config');
 require('./lib/logger'); // configure global logger
 const log = global.log.child({
 	file: __filename.split(/[\\/]/).pop()
 });
+const filename = __filename.split(/[\\/]/).pop();
 const cluster = require('cluster');
-
 const RedisQueue = require('./lib/queue');
 const Nitpin = require('./lib/nitpin');
-
-const config = require('./config');
 const database = require('./lib/database');
+
+const encoder = JSON.stringify;
+const decoder = JSON.parse;
 
 let mongoclient;
 let collection;
 let taskqueue;
-let articlequeue;
 let nitpin;
-const numCPUs = 10; // require('os').cpus().length;
+
+const WebSocket = require('ws');
+
+const ws = new WebSocket('ws://localhost:9999/path');
+ws.on('open', function open() {
+	// console.log('open');
+});
 
 if (cluster.isMaster) {
-	for (let i = 0; i < numCPUs; i++) {
+	process.title = `node ${filename} server(master)`;
+	for (let i = 0; i < global.config.articlesdownload.threads; i++) {
 		cluster.fork();
 	}
 	master();
@@ -27,7 +35,7 @@ if (cluster.isMaster) {
 }
 
 function getGroup(callback) {
-	nitpin.group(config.group, (error, group) => {
+	nitpin.group(global.config.group, (error, group) => {
 		log.info({
 			group
 		}, 'group');
@@ -40,7 +48,7 @@ function getStats(callback) {
 		if (db) {
 			mongoclient = db;
 			mongoclient.collection('stats').findOne({
-				_id: config.group
+				_id: global.config.group
 			}, (error, stats) => {
 				log.info({
 					stats
@@ -60,26 +68,26 @@ function pushBackfillTasks(group, stats, callback) {
 		log.warn('backfill complete');
 		return 0;
 	}
-	if (total > config.total_articles) {
-		total = config.total_articles;
+	if (total > global.config.total_articles) {
+		total = global.config.total_articles;
 	}
 	log.info('Total articles', total);
-	const fulltasks = Math.floor(total / config.articles_per_connection);
-	const remaining = total % config.articles_per_connection;
+	const fulltasks = Math.floor(total / global.config.articles_per_connection);
+	const remaining = total % global.config.articles_per_connection;
 	for (let i = 0; i < fulltasks; i++) {
 		taskqueue.push({
-			low: stats.low - ((i + 1) * config.articles_per_connection),
-			high: stats.low - (i * config.articles_per_connection) - 1,
+			low: stats.low - ((i + 1) * global.config.articles_per_connection),
+			high: stats.low - (i * global.config.articles_per_connection) - 1,
 		});
 	}
 	if (remaining > 0) {
 		taskqueue.push({
-			low: stats.low - (fulltasks * config.articles_per_connection) - remaining,
-			high: stats.low - (fulltasks * config.articles_per_connection) - 1
+			low: stats.low - (fulltasks * global.config.articles_per_connection) - remaining,
+			high: stats.low - (fulltasks * global.config.articles_per_connection) - 1
 		});
 	}
 	mongoclient.collection('stats').updateOne({
-		_id: config.group
+		_id: global.config.group
 	}, {
 		high: stats.high,
 		low: stats.low - total
@@ -91,10 +99,8 @@ function pushBackfillTasks(group, stats, callback) {
 }
 
 function master() {
-	// log.info(`Master ${process.pid} is running`);
-	nitpin = new Nitpin(config.server);
+	nitpin = new Nitpin(global.config.server);
 	taskqueue = new RedisQueue('tasks', true, false);
-	articlequeue = new RedisQueue('articles', true, false);
 	getGroup((group) => {
 		getStats((stats) => {
 			pushBackfillTasks(group, stats, (tasks) => {
@@ -103,30 +109,23 @@ function master() {
 			});
 		})
 	});
-	const interval = setInterval(() => {
-		articlequeue.depth((count) => {
-			log.info('queuedepth articles', count);
-		});
-	}, 5000);
+	let exited = 0;
+	cluster.on('exit', function (worker, code, signal) {
+		exited++;
+		if (exited === global.config.articlesdownload.threads) {
+			log.info("All workers have exited");
+			process.exit(0);
+		}
+	});
 	let done = 0;
 	cluster.on('message', (worker, cmd) => {
 		if (cmd = 'done') {
 			done++;
-			if (done === numCPUs) {
+			if (done === global.config.articlesdownload.threads) {
 				log.info("All workers are done");
-				clearInterval(interval);
 				taskqueue.stop();
-				articlequeue.stop();
 				cluster.disconnect();
 			}
-		}
-	});
-	let exited = 0;
-	cluster.on('exit', function (worker, code, signal) {
-		exited++;
-		if (exited === numCPUs) {
-			log.info("All workers have exited");
-			process.exit(0);
 		}
 	});
 }
@@ -158,11 +157,17 @@ function reduce(array) {
 }
 
 function worker() {
-	// log.info(`Worker ${process.pid} started`);
-	nitpin = new Nitpin(config.server);
-	articlequeue = new RedisQueue('articles', true, false);
+	const worker_id = cluster.worker.id;
+	process.title = `node ${filename} server(worker[${worker_id}])`;
+	nitpin = new Nitpin(global.config.server);
 	taskqueue = new RedisQueue('tasks', true, false);
 	timeout = undefined;
+	process.on('disconnect', () => {
+		taskqueue.stop();
+		return setTimeout(() => {
+			process.exit(0);
+		}, 500);
+	});
 	taskqueue.on('message', (task, result) => {
 		if (timeout) clearTimeout(timeout);
 		processTask(task, (error) => {
@@ -171,13 +176,6 @@ function worker() {
 			}
 			return result.ok();
 		});
-	});
-	process.on('disconnect', () => {
-		articlequeue.stop();
-		taskqueue.stop();
-		return setTimeout(() => {
-			process.exit(0);
-		}, 500);
 	});
 	taskqueue.on('drain', () => {
 		timeout = setTimeout(() => {
@@ -190,7 +188,7 @@ function worker() {
 }
 
 function processTask(task, callback) {
-	nitpin.over(config.group, task.low, task.high, function gotMessages(error, messages) {
+	nitpin.over(global.config.group, task.low, task.high, function gotMessages(error, messages) {
 		if (error) {
 			log.error({
 				task,
@@ -199,9 +197,14 @@ function processTask(task, callback) {
 			return callback(true);
 		}
 		if (messages) {
-			articlequeue.push(messages);
-			// log.debug(task, 'messages', messages.length);
-			return callback(false);
+			ws.send(encoder(messages), function ack(error) {
+				// If error is not defined, the send has been completed, otherwise the error
+				if (error) {
+					log.error(error);
+					return callback(true);
+				}
+				return callback(false);
+			});
 		} else {
 			return callback(true);
 		}

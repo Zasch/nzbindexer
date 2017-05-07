@@ -7,6 +7,7 @@ module.exports = {
 		secure: true
 	},
 	mongodb: 'mongodb://localhost:27017/nzbindex',
+	bulksize: 999,
 	redis: {
 		host: 'localhost',
 		port: 6379,
@@ -14,14 +15,20 @@ module.exports = {
 		return_buffers: true
 	},
 	group: 'alt.binaries.teevee',
-	articles_per_connection: 25000,
-	total_articles: 1000000,
+	articles_per_connection: 10000,
+	total_articles: 500000,
 	logger: {
 		name: 'nzbindexer',
 		streams: [{
 			level: 'debug',
 			stream: process.stdout
 		}]
+	},
+	articlesdownload: {
+		threads: 4
+	},
+	articlestodatabase: {
+		threads: 7
 	}
 }
 

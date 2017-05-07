@@ -18,7 +18,9 @@
     "easy-table": "^1.1.0",
     "lokijs": "^1.4.3",
     "mongodb": "^2.2.26",
+    "msgpack": "^1.0.2",
     "msgpack-lite": "^0.1.26",
-    "redis": "^2.7.1"
+    "redis": "^2.7.1",
+    "ws": "^2.3.1"
   }
 }

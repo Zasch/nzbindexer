@@ -1,3 +1,4 @@
+require('./lib/config');
 require('./lib/logger'); // configure global logger
 const log = global.log.child({
 	file: __filename.split(/[\\/]/).pop()
@@ -33,10 +34,9 @@ function mapFileObject(file) {
 }
 
 function process() {
-	const x = 5000; // batch execute once per x
 	source = mongoclient.collection('files');
-	remover = new database.BulkProcessor(source, x);
-	inserter = new database.BulkProcessor(mongoclient.collection('files_complete'), x);
+	remover = new database.BulkProcessor(source, global.config.bulksize);
+	inserter = new database.BulkProcessor(mongoclient.collection('files_complete'), global.config.bulksize);
 	let stats = {
 		complete: 0,
 		incomplete: 0

@@ -64,7 +64,7 @@ database.connect(function (db) {
 				out: {
 					reduce: "releases"
 				},
-				jsMode: true,
+				jsMode: false,
 				verbose: false,
 				finalize: finalizer
 			},

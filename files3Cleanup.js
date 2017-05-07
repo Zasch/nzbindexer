@@ -1,3 +1,4 @@
+require('./lib/config');
 require('./lib/logger'); // configure global logger
 const log = global.log.child({
 	file: __filename.split(/[\\/]/).pop()
@@ -11,7 +12,7 @@ database.connect((db) => {
 	if (db) {
 		log.info('starting cleanup');
 		mongoclient = db;
-		remover = new database.BulkProcessor(mongoclient.collection('files_complete'), 5000);
+		remover = new database.BulkProcessor(mongoclient.collection('files_complete'), global.config.bulksize);
 		return process();
 	}
 	return;
