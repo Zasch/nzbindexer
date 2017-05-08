@@ -1,12 +1,12 @@
-require('./lib/config');
-require('./lib/logger'); // configure global logger
+require('../lib/config');
+require('../lib/logger'); // configure global logger
 const log = global.log.child({
 	file: __filename.split(/[\\/]/).pop()
 });
 const filename = __filename.split(/[\\/]/).pop();
 const cluster = require('cluster');
 
-const database = require('./lib/database');
+const database = require('../lib/database');
 let mongoclient;
 let source_collection;
 let target_collection;
@@ -28,16 +28,16 @@ class timer {
 
 if (cluster.isMaster) {
 	log.info('starting');
-	process.title = `node ${filename} master`;
-	const numCPUs = global.config.articlestofiles.threads;
+	process.title = `node ${filename} server(master)`;
+	const numCPUs = 6;
 	let keys;
 	let keyslength;
 	let keyspointer = 0;
 	database.connect((db) => {
 		mongoclient = db;
 		source_collection = mongoclient.collection('articles');
+		target_collection = mongoclient.collection('files_complete1');
 		getDistinct(source_collection, 'key', (distinctkeys) => {
-			timer.start('parallel');
 			log.info(`found ${distinctkeys.length} distinct keys`);
 			keys = distinctkeys;
 			keyslength = keys.length;
@@ -55,6 +55,7 @@ if (cluster.isMaster) {
 		}
 	});
 	let workers_done = 0;
+	timer.start('parallel');
 	cluster.on('message', (worker, message) => {
 		if (message === "send me a message") {
 			if (keyspointer < keyslength) {
@@ -71,11 +72,11 @@ if (cluster.isMaster) {
 	});
 } else if (cluster.isWorker) {
 	const worker_id = cluster.worker.id;
-	process.title = `node ${filename} worker[${worker_id}]`;
+	process.title = `node ${filename} server(worker[${worker_id}])`;
 	database.connect((db) => {
 		mongoclient = db;
 		source_collection = mongoclient.collection('articles');
-		target_collection = mongoclient.collection('files_complete');
+		target_collection = mongoclient.collection('files_complete1');
 		return process.send("send me a message");
 	});
 	process.on("disconnect", () => {
@@ -193,6 +194,7 @@ function executeOperations(source_operations, target_operations, callback) {
 }
 
 // bulk helpers
+
 function deleteOne(id) {
 	return {
 		deleteOne: {

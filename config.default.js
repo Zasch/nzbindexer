@@ -29,6 +29,9 @@ module.exports = {
 	},
 	articlestodatabase: {
 		threads: 7
+	},
+	articlestofiles: {
+		threads: 6
 	}
 }
 

@@ -8,6 +8,7 @@
  1. run node createCollections.js
  1. start running scripts (nb: in order!)
 
+**NB:** You definately wanna tweak (lower) the thread settings in config. I have dual-hecacore machine (12 physical cores). Its easy to take your machine to the limit with these volumes :-)
 **NB:** If you run script and want proper output, you run them with the following command:
 
 `node articles1Update.js  | ./node_modules/.bin/bunyan`

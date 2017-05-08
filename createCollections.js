@@ -17,9 +17,7 @@ database.connect((db) => {
 const collections = [
 	'articles',
 	'articles_filtered',
-	'files',
 	'files_complete',
-	'releases',
 	'releases_complete',
 	'stats'
 ];
@@ -49,6 +47,15 @@ const indexes = {
 		}
 	}, {
 		options: {
+			name: 'date',
+			unique: false,
+			background: false
+		},
+		keys: {
+			"date": 1
+		}
+	}, {
+		options: {
 			name: 'key',
 			unique: false,
 			background: false
@@ -57,7 +64,38 @@ const indexes = {
 			"key": 1
 		}
 	}],
-	files: [{
+	articles_filtered: [{
+		options: {
+			name: 'reject_duplicate_articles',
+			unique: true,
+			background: false,
+			dropDups: true
+		},
+		keys: {
+			"filename": 1,
+			"part.index": 1,
+			"email": 1,
+			"application": 1
+		}
+	}, {
+		options: {
+			name: 'created',
+			unique: false,
+			background: false
+		},
+		keys: {
+			"created": 1
+		}
+	}, {
+		options: {
+			name: 'date',
+			unique: false,
+			background: false
+		},
+		keys: {
+			"date": 1
+		}
+	}, {
 		options: {
 			name: 'key',
 			unique: false,
@@ -65,15 +103,6 @@ const indexes = {
 		},
 		keys: {
 			"key": 1
-		}
-	}, {
-		options: {
-			name: 'modified',
-			unique: false,
-			background: false
-		},
-		keys: {
-			"value.modified": 1
 		}
 	}],
 	files_complete: [{
@@ -104,7 +133,7 @@ const indexes = {
 			"date": 1
 		}
 	}],
-	releases: [{
+	releases_complete: [{
 		options: {
 			name: 'key',
 			unique: false,
@@ -115,22 +144,12 @@ const indexes = {
 		}
 	}, {
 		options: {
-			name: 'modified',
+			name: 'date',
 			unique: false,
 			background: false
 		},
 		keys: {
-			"value.modified": 1
-		}
-	}],
-	releases_complete: [{
-		options: {
-			name: 'key',
-			unique: false,
-			background: false
-		},
-		keys: {
-			"key": 1
+			"date": 1
 		}
 	}]
 };
@@ -200,3 +219,45 @@ function createIndex(collection, index, callback) {
 		}
 	});
 }
+
+
+// files: [{
+// 		options: {
+// 			name: 'key',
+// 			unique: false,
+// 			background: false
+// 		},
+// 		keys: {
+// 			"key": 1
+// 		}
+// 	}, {
+// 		options: {
+// 			name: 'modified',
+// 			unique: false,
+// 			background: false
+// 		},
+// 		keys: {
+// 			"value.modified": 1
+// 		}
+// 	}],
+
+
+// releases: [{
+// 	options: {
+// 		name: 'key',
+// 		unique: false,
+// 		background: false
+// 	},
+// 	keys: {
+// 		"key": 1
+// 	}
+// }, {
+// 	options: {
+// 		name: 'modified',
+// 		unique: false,
+// 		background: false
+// 	},
+// 	keys: {
+// 		"value.modified": 1
+// 	}
+// }],
