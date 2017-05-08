@@ -30,6 +30,10 @@
  1. put a website on top
  1. automaticaly generate notifications (email / other) based on configurable search critera
 
+![](article.jpg)
+![](file.jpg)
+![](release.jpg)
+
 ### Last updates:
 1. All scripts now exit properly
 2. **Significantly** improved the performance of "articles2ToDatabase.js", blazing fast it is now

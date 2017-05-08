@@ -17,6 +17,21 @@ let collection;
 let taskqueue;
 let nitpin;
 
+class timer {
+	static start(name) {
+		if (!this.timers) this.timers = {};
+		this.timers[name] = process.hrtime();
+	}
+	static end(name) {
+		if (this.timers && this.timers[name]) {
+			const end = process.hrtime(this.timers[name]);
+			return `${end[0]}s ${end[1] / 1000000}ms`;
+		} else {
+			throw `timer.end called  for [${name}] before start`
+		}
+	}
+}
+
 const WebSocket = require('ws');
 
 const ws = new WebSocket('ws://localhost:9999/path');
@@ -101,10 +116,10 @@ function pushBackfillTasks(group, stats, callback) {
 function master() {
 	nitpin = new Nitpin(global.config.server);
 	taskqueue = new RedisQueue('tasks', true, false);
+	timer.start('process');
 	getGroup((group) => {
 		getStats((stats) => {
 			pushBackfillTasks(group, stats, (tasks) => {
-				log.info(tasks + ' tasks created');
 				mongoclient.close();
 			});
 		})
@@ -113,7 +128,7 @@ function master() {
 	cluster.on('exit', function (worker, code, signal) {
 		exited++;
 		if (exited === global.config.articlesdownload.threads) {
-			log.info("All workers have exited");
+			log.info(`All workers have exited: ${timer.end('process')}`);
 			process.exit(0);
 		}
 	});
