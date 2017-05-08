@@ -30,8 +30,11 @@
  1. put a website on top
  1. automaticaly generate notifications (email / other) based on configurable search critera
 
+## article object
 ![](article.jpg)
+## file object
 ![](file.jpg)
+## release object
 ![](release.jpg)
 
 ### Last updates:
