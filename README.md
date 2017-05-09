@@ -17,7 +17,7 @@
 `./update.sh`
 `./backfill.sh`
 
-![](process.jpg)
+![](images/process.jpg)
 
 ### TODO / Plans (not necessarily in order):
  1. propagate all neccesary fields to releases
@@ -31,11 +31,11 @@
  1. automaticaly generate notifications (email / other) based on configurable search critera
 
 ## article object
-![](article.jpg)
+![](images/article.jpg)
 ## file object
-![](file.jpg)
+![](images/file.jpg)
 ## release object
-![](release.jpg)
+![](images/release.jpg)
 
 ### Last updates:
 1. All scripts now exit properly

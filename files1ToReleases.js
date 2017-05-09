@@ -5,26 +5,13 @@ const log = global.log.child({
 });
 const filename = __filename.split(/[\\/]/).pop();
 const cluster = require('cluster');
-
 const database = require('./lib/database');
+const timer = require('./lib/timer');
 let mongoclient;
 let source_collection;
 let target_collection;
-
-class timer {
-	static start(name) {
-		if (!this.timers) this.timers = {};
-		this.timers[name] = process.hrtime();
-	}
-	static end(name) {
-		if (this.timers && this.timers[name]) {
-			const end = process.hrtime(this.timers[name]);
-			return `${end[0]}s ${end[1] / 1000000}ms`;
-		} else {
-			throw `timer.end called  for [${name}] before start`
-		}
-	}
-}
+const source = 'files_complete';
+const target = 'releases_complete';
 
 if (cluster.isMaster) {
 	log.info('starting');
@@ -35,17 +22,17 @@ if (cluster.isMaster) {
 	let keyspointer = 0;
 	database.connect((db) => {
 		mongoclient = db;
-		source_collection = mongoclient.collection('files_complete');
-		// getDistinct(source_collection, 'key', (distinctkeys) => {
-		// 	timer.start('parallel');
-		// 	log.info(`found ${distinctkeys.length} distinct keys`);
-		// 	keys = distinctkeys;
-		// 	keyslength = keys.length;
-		// 	for (let i = 0; i < numCPUs; i++) {
-		// 		cluster.fork();
-		// 	}
-		// 	mongoclient.close();
-		// });
+		source_collection = mongoclient.collection(source);
+		getDistinct(source_collection, 'key', (distinctkeys) => {
+			timer.start('parallel');
+			log.info(`found ${distinctkeys.length} distinct keys`);
+			keys = distinctkeys;
+			keyslength = keys.length;
+			for (let i = 0; i < numCPUs; i++) {
+				cluster.fork();
+			}
+			mongoclient.close();
+		});
 	});
 	let exited = 0;
 	cluster.on('exit', () => {
@@ -74,22 +61,22 @@ if (cluster.isMaster) {
 	process.title = `node ${filename} worker[${worker_id}]`;
 	database.connect((db) => {
 		mongoclient = db;
-		source_collection = mongoclient.collection('files_complete');
-		target_collection = mongoclient.collection('releases_complete');
-		// return process.send("send me a message");
+		source_collection = mongoclient.collection(source);
+		target_collection = mongoclient.collection(target);
+		return process.send("send me a message");
 	});
-	// process.on("disconnect", () => {
-	// 	mongoclient.close();
-	// });
-	// process.on("message", (key) => {
-	// 	getDocumentsByArray(source_collection, {
-	// 		key: key
-	// 	}, (documents) => {
-	// 		return processDocuments(key, documents, () => {
-	// 			return process.send("send me a message");
-	// 		});
-	// 	});
-	// });
+	process.on("disconnect", () => {
+		mongoclient.close();
+	});
+	process.on("message", (key) => {
+		getDocumentsByArray(source_collection, {
+			key: key
+		}, (documents) => {
+			return processDocuments(key, documents, () => {
+				return process.send("send me a message");
+			});
+		});
+	});
 }
 
 function getDocumentsByArray(collection, query, callback) {
@@ -111,18 +98,20 @@ function processDocuments(key, documents, callback) {
 		complete = true;
 	} else if (documents.length === total + 1) {
 		const min_index = documents.reduce((prev, current) => {
-			return Math.min(prev, current.part.index);
+			return Math.min(prev, current.file.index);
 		}, 999999999999);
-		console.log(min);
-		if (min === 0) {
-			console.log('also complete', key);
-			// complete = true;
+		if (min_index === 0) {
+			// console.log('also complete', key);
+			complete = true;
 		}
 	}
 	if (!complete) {
+		// console.log('NOT', key)
 		return callback();
 	}
 	if (complete) {
+		// console.log('yes', key);
+		// return callback();
 		return moveComplete(key, documents, callback);
 	}
 }
@@ -131,25 +120,56 @@ function compareNumbers(a, b) {
 	return a - b;
 }
 
+function extractExtension(filename, subject) {
+	var elements = /(\.)([0-9a-z]{1,5})$/.exec(filename);
+	if (elements && elements.length === 3) {
+		return elements[2];
+	} else {
+		log.error('extension unknown', subject)
+		return 'unknown';
+	}
+}
+
 function mapDocuments(documents) {
 	let sorted = documents.sort((a, b) => {
 		// return compareNumbers(a.part.index, b.part.index);
-		return a.part.index - b.part.index;
+		return a.file.index - b.file.index;
 	});
 	let retval = sorted[0];
+	// let retval = Object.assign(sorted[0]);
+	delete retval.messageid;
 	delete retval.errors;
-	delete retval.newsubject;
-	delete retval.bytes;
-	delete retval.lines;
-	delete retval.part;
 	retval.created = new Date();
-	retval.totalbytes = 0;
-	retval.parts = [];
-	return sorted.reduce((previous, current) => {
-		previous.totalbytes += current.bytes;
-		previous.parts.push(current.messageid);
+	retval.files = [];
+	retval.extensions = {};
+	const newObject = sorted.reduce((previous, current) => {
+		if (previous._id !== current._id) {
+			previous.totalbytes += current.totalbytes;
+		}
+		const extension = extractExtension(current.filename, current.subject);
+		if (!previous.extensions[extension]) {
+			previous.extensions[extension] = 0
+		}
+		previous.extensions[extension]++;
+		if (current.complete === false) {
+			previous.complete = false;
+		}
+		previous.files.push({
+			subject: current.subject,
+			filename: current.filename,
+			file: current.file,
+			totalbytes: current.totalbytes,
+			subject: current.subject,
+			parts: current.parts,
+			complete: current.complete,
+			subject: current.subject,
+		});
 		return previous;
 	}, retval);
+	delete newObject.file;
+	newObject._id = newObject.regex + '|' + newObject.email + '|' + newObject.date;
+	// console.log('newObject', newObject);
+	return newObject;
 }
 
 function moveComplete(key, documents, callback) {
@@ -158,6 +178,7 @@ function moveComplete(key, documents, callback) {
 	const mapped = mapDocuments(documents);
 	source_operations.push(deleteManyByKey(key))
 	target_operations.push(insertOne(mapped));
+	// return callback();
 	return executeOperations(source_operations, target_operations, callback);
 }
 
@@ -169,22 +190,34 @@ function executeOperations(source_operations, target_operations, callback) {
 	}
 	let ops_completed = 0;
 	if (target_operations.length > 0) {
+		// console.log('target_operations', target_operations.length);
 		target_collection.bulkWrite(target_operations, {
 			ordered: false
 		}, function (error, result) {
 			ops_completed++;
-			// log.info('result: files_complete1', result.nInserted);
+			if (error) {
+				log.error(error);
+			}
+			if (result) {
+				// log.info(`result: ${target}, ${result.nInserted} inserted`);
+			}
 			if (ops_completed === total_ops) {
 				return callback();
 			}
 		});
 	}
 	if (source_operations.length > 0) {
+		// console.log('source_operations', source_operations.length);
 		source_collection.bulkWrite(source_operations, {
 			ordered: false
 		}, function (error, result) {
 			ops_completed++;
-			// log.info('result: articles', result.nRemoved);
+			if (error) {
+				log.error(error);
+			}
+			if (result) {
+				// log.info(`result: ${source}, ${result.nRemoved} removed`);
+			}
 			if (ops_completed === total_ops) {
 				return callback();
 			}

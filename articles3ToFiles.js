@@ -10,6 +10,8 @@ const database = require('./lib/database');
 let mongoclient;
 let source_collection;
 let target_collection;
+const source = 'articles';
+const target = 'files_complete';
 
 class timer {
 	static start(name) {
@@ -35,7 +37,7 @@ if (cluster.isMaster) {
 	let keyspointer = 0;
 	database.connect((db) => {
 		mongoclient = db;
-		source_collection = mongoclient.collection('articles');
+		source_collection = mongoclient.collection(source);
 		getDistinct(source_collection, 'key', (distinctkeys) => {
 			timer.start('parallel');
 			log.info(`found ${distinctkeys.length} distinct keys`);
@@ -74,8 +76,8 @@ if (cluster.isMaster) {
 	process.title = `node ${filename} worker[${worker_id}]`;
 	database.connect((db) => {
 		mongoclient = db;
-		source_collection = mongoclient.collection('articles');
-		target_collection = mongoclient.collection('files_complete');
+		source_collection = mongoclient.collection(source);
+		target_collection = mongoclient.collection(target);
 		return process.send("send me a message");
 	});
 	process.on("disconnect", () => {
@@ -113,8 +115,8 @@ function processDocuments(key, documents, callback) {
 		const min_index = documents.reduce((prev, current) => {
 			return Math.min(prev, current.part.index);
 		}, 999999999999);
-		console.log(min);
-		if (min === 0) {
+		console.log(min_index);
+		if (min_index === 0) {
 			console.log('also complete', key);
 			// complete = true;
 		}
@@ -138,24 +140,26 @@ function mapDocuments(documents) {
 	});
 	let retval = sorted[0];
 	delete retval.errors;
-	delete retval.newsubject;
-	delete retval.bytes;
-	delete retval.lines;
 	delete retval.part;
+	retval.key = retval.regex + '|' + retval.file.total + '|' + retval.email;
 	retval.created = new Date();
 	retval.totalbytes = 0;
 	retval.parts = [];
-	return sorted.reduce((previous, current) => {
+	const newObject = sorted.reduce((previous, current) => {
 		previous.totalbytes += current.bytes;
 		previous.parts.push(current.messageid);
 		return previous;
 	}, retval);
+	delete newObject.bytes;
+	// console.log('newObject', newObject);
+	return newObject;
 }
 
 function moveComplete(key, documents, callback) {
 	let source_operations = [];
 	let target_operations = [];
 	const mapped = mapDocuments(documents);
+	mapped.complete = true;
 	source_operations.push(deleteManyByKey(key))
 	target_operations.push(insertOne(mapped));
 	return executeOperations(source_operations, target_operations, callback);
@@ -169,22 +173,34 @@ function executeOperations(source_operations, target_operations, callback) {
 	}
 	let ops_completed = 0;
 	if (target_operations.length > 0) {
+		// console.log('target_operations', target_operations.length);
 		target_collection.bulkWrite(target_operations, {
 			ordered: false
 		}, function (error, result) {
 			ops_completed++;
-			// log.info('result: files_complete1', result.nInserted);
+			if (error) {
+				log.error(error);
+			}
+			if (result) {
+				// log.info(`result: ${target}, ${result.nInserted} inserted`);
+			}
 			if (ops_completed === total_ops) {
 				return callback();
 			}
 		});
 	}
 	if (source_operations.length > 0) {
+		// console.log('source_operations', source_operations.length);
 		source_collection.bulkWrite(source_operations, {
 			ordered: false
 		}, function (error, result) {
 			ops_completed++;
-			// log.info('result: articles', result.nRemoved);
+			if (error) {
+				log.error(error);
+			}
+			if (result) {
+				// log.info(`result: ${source}, ${result.nRemoved} removed`);
+			}
 			if (ops_completed === total_ops) {
 				return callback();
 			}
