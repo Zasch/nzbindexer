@@ -1,6 +1,9 @@
 .DS_Store
+build
+config.js
 config.js
 node_modules/
 test.js
+test.ts
 *.gz
 old/*
