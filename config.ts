@@ -2,7 +2,7 @@ export const config = {
 	server: {
 		host: 'news.newshosting.com', // Example uses the open PHP newsgroups server
 		user: 'sander1972', // Example doesn't need username
-		pass: 'jennajameson0', // Nor password
+		pass: 'klaterbos#$%', // Nor password
 		port: 563,
 		secure: true
 	},
