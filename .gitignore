@@ -1,5 +1,5 @@
 .DS_Store
-build
+build/
 config.js
 config.ts
 node_modules/

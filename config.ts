@@ -16,7 +16,7 @@ export const config = {
 	},
 	group: 'alt.binaries.erotica',
 	articles_per_connection: 10000,
-	total_articles: 1000000,
+	total_articles: 20000000,
 	logger: {
 		name: 'nzbindexer',
 		streams: [{
