@@ -19,8 +19,18 @@
     "lokijs": "^1.4.3",
     "mongodb": "^2.2.26",
     "msgpack": "^1.0.2",
-    "msgpack-lite": "^0.1.26",
     "redis": "^2.7.1",
     "ws": "^2.3.1"
+  },
+  "devDependencies": {
+    "@types/async": "^2.0.40",
+    "@types/bunyan": "0.0.36",
+    "@types/mongodb": "^2.2.2",
+    "@types/msgpack": "0.0.29",
+    "@types/node": "^7.0.18",
+    "@types/redis": "^0.12.36",
+    "@types/ws": "0.0.41",
+    "ts-node": "^3.0.4",
+    "typescript": "^2.3.2"
   }
 }
