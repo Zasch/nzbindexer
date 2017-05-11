@@ -1,7 +1,7 @@
 .DS_Store
 build
 config.js
-config.js
+config.ts
 node_modules/
 test.js
 test.ts
