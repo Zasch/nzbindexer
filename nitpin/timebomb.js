@@ -11,7 +11,7 @@ function timebomb(timer, callback) {
 		exploded: false,
 		handle: setTimeout(function explode() {
 			var err = new Error('Timeout of ' + timer + 'ms was reached');
-			exploded = true;
+			bomb.exploded = true;
 			if (callback) {
 				callback(err);
 			} else {

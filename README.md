@@ -9,7 +9,7 @@
  1. run node createCollections.js
  1. start running scripts (nb: in order!)
 
-**NB:** You definately wanna tweak (lower) the thread settings in config. I have dual-hecacore machine (12 physical cores). Its easy to take your machine to the limit with these volumes :-)
+**NB:** You definately wanna tweak (lower) the thread settings in config. I have dual-hexacore machine (12 physical cores). Its easy to take your machine to the limit with these volumes :-)
 **NB:** If you run script and want proper output (I use bunyan for logging), you run them with the following command:
 
 `ts-node articles1Update.ts  | bunyan`
