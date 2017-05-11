@@ -3,19 +3,20 @@
 ### Basic Instructions:
  1. clone repo
  1. npm install
- 1. copy config.default.js --> config.js and modify your settings
+ 1. npm -g install ts-node bunyan
+ 1. copy config.default.ts --> config.ts and modify your settings
  1. fire up redis and mongodb
  1. run node createCollections.js
  1. start running scripts (nb: in order!)
 
 **NB:** You definately wanna tweak (lower) the thread settings in config. I have dual-hecacore machine (12 physical cores). Its easy to take your machine to the limit with these volumes :-)
-**NB:** If you run script and want proper output, you run them with the following command:
+**NB:** If you run script and want proper output (I use bunyan for logging), you run them with the following command:
 
-`node articles1Update.js  | ./node_modules/.bin/bunyan`
+`ts-node articles1Update.ts  | bunyan`
 
-### Added Scripts
-`./update.sh`
-`./backfill.sh`
+~~### Added Scripts~~
+~~`./update.sh`~~
+~~`./backfill.sh`~~
 
 ![](images/process.jpg)
 
