@@ -81,6 +81,7 @@ function mapDocuments(documents: Array<any>) {
 	let retval = sorted[0];
 	delete retval.errors;
 	delete retval.part;
+	retval._id = retval.filename + '|' + retval.file.index + 'of' + retval.file.total + '|' + retval.id;
 	retval.key = retval.regex + '|' + retval.file.total + '|' + retval.email;
 	retval.created = new Date();
 	retval.totalbytes = 0;

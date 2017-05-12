@@ -1,51 +1,12 @@
 {
 	"version": "0.2.0",
-	"configurations": [
-		{
-			"type": "node",
-			"request": "launch",
-			"name": "article1Update",
-			"program": "${workspaceRoot}/articles1Update.js"
-		}, {
-			"type": "node",
-			"request": "launch",
-			"name": "article2ToDatabase",
-			"program": "${workspaceRoot}/articles2ToDatabase.js"
-		}, {
-			"type": "node",
-			"request": "launch",
-			"name": "article3ToFiles",
-			"program": "${workspaceRoot}/articles3ToFiles.js"
-		}, {
-			"type": "node",
-			"request": "launch",
-			"name": "article4Cleanup",
-			"program": "${workspaceRoot}/articles4Cleanup.js"
-		}, {
-			"type": "node",
-			"request": "launch",
-			"name": "files1MoveComplete",
-			"program": "${workspaceRoot}/files1MoveComplete.js"
-		}, {
-			"type": "node",
-			"request": "launch",
-			"name": "files2ToReleases",
-			"program": "${workspaceRoot}/files2ToReleases.js"
-		}, {
-			"type": "node",
-			"request": "launch",
-			"name": "files3Cleanup",
-			"program": "${workspaceRoot}/files3Cleanup.js"
-		}, {
-			"type": "node",
-			"request": "launch",
-			"name": "releases1MoveComplete",
-			"program": "${workspaceRoot}/releases1MoveComplete.js"
-		}, {
-			"type": "node",
-			"request": "launch",
-			"name": "releases1MoveIncomplete",
-			"program": "${workspaceRoot}/releases1MoveIncomplete.js"
-		}
-	]
+	"configurations": [{
+		"type": "node",
+		"request": "launch",
+		"outFiles": [
+			"${workspaceRoot}/build/**/*"
+		],
+		"name": "articles1CleanupTesting",
+		"program": "${workspaceRoot}/articles1CleanupTesting.ts"
+	}]
 }
