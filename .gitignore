@@ -6,4 +6,4 @@ node_modules/
 test.js
 test.ts
 *.gz
-old/*
+old/
