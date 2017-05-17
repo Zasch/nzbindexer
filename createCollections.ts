@@ -18,124 +18,53 @@ database.connect((db: Db) => {
 const collections = [
 	'articles',
 	'articles_filtered',
-	'files_complete',
-	'releases_complete',
+	'files',
+	'releases',
 	'stats'
 ];
 
-interface Index {
+interface Indexes {
 	[key: string]: Array<any>;
 }
 
-
-const indexes: Index = {
-	articles: [{
+function index(name: string, keys: any, unique: boolean, dropDups?: boolean, background?: boolean) {
+	return {
 		options: {
-			name: 'reject_duplicate_articles',
-			unique: true,
-			background: false,
-			dropDups: true
+			name: name,
+			unique: unique,
+			dropDups: dropDups || false,
+			background: background || false
 		},
-		keys: {
+		keys: keys
+	}
+}
+
+const indexes: Indexes = {
+	articles: [
+		index('reject_duplicate_articles', {
 			"filename": 1,
 			"part.index": 1,
-			"email": 1,
-			"application": 1
-		}
-	}, {
-		options: {
-			name: 'created',
-			unique: false,
-			background: false
-		},
-		keys: {
-			"created": 1
-		}
-	}, {
-		options: {
-			name: 'date',
-			unique: false,
-			background: false
-		},
-		keys: {
-			"date": 1
-		}
-	}, {
-		options: {
-			name: 'key',
-			unique: false,
-			background: false
-		},
-		keys: {
-			"key": 1
-		}
-	}],
-	articles_filtered: [{
-		options: {
-			name: 'created',
-			unique: false,
-			background: false
-		},
-		keys: {
-			"created": 1
-		}
-	}, {
-		options: {
-			name: 'date',
-			unique: false,
-			background: false
-		},
-		keys: {
-			"date": 1
-		}
-	}],
-	files_complete: [{
-		options: {
-			name: 'key',
-			unique: false,
-			background: false
-		},
-		keys: {
-			"key": 1
-		}
-	}, {
-		options: {
-			name: 'created',
-			unique: false,
-			background: false
-		},
-		keys: {
-			"created": 1
-		}
-	}, {
-		options: {
-			name: 'date',
-			unique: false,
-			background: false
-		},
-		keys: {
-			"date": 1
-		}
-	}],
-	releases_complete: [{
-		options: {
-			name: 'key',
-			unique: false,
-			background: false
-		},
-		keys: {
-			"key": 1
-		}
-	}, {
-		options: {
-			name: 'date',
-			unique: false,
-			background: false
-		},
-		keys: {
-			"date": 1
-		}
-	}]
+			"email": 1
+		}, true, false),
+		index('messageid', { messageid: 1 }, true,false),
+		index('key', { key: 1 }, false),
+		index('status', { status: 1 }, false),
+		index('date', { date: 1 }, false)
+	],
+	articles_filtered: [
+		index('messageid', { messageid: 1 }, true, false),
+		index('key', { key: 1 }, false),
+		index('status', { status: 1 }, false),
+		index('date', { date: 1 }, false)
+	],
+	files: [
+		index('key', { key: 1 }, false),
+		index('date', { date: 1 }, false)
+	],
+	releases: [
+		index('key', { key: 1 }, false),
+		index('date', { date: 1 }, false)
+	]
 };
 
 function start() {
@@ -203,45 +132,3 @@ function createIndex(collection: any, index: any, callback: Function) {
 		}
 	});
 }
-
-
-// files: [{
-// 		options: {
-// 			name: 'key',
-// 			unique: false,
-// 			background: false
-// 		},
-// 		keys: {
-// 			"key": 1
-// 		}
-// 	}, {
-// 		options: {
-// 			name: 'modified',
-// 			unique: false,
-// 			background: false
-// 		},
-// 		keys: {
-// 			"value.modified": 1
-// 		}
-// 	}],
-
-
-// releases: [{
-// 	options: {
-// 		name: 'key',
-// 		unique: false,
-// 		background: false
-// 	},
-// 	keys: {
-// 		"key": 1
-// 	}
-// }, {
-// 	options: {
-// 		name: 'modified',
-// 		unique: false,
-// 		background: false
-// 	},
-// 	keys: {
-// 		"value.modified": 1
-// 	}
-// }],

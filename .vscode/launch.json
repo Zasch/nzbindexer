@@ -3,10 +3,26 @@
 	"configurations": [{
 		"type": "node",
 		"request": "launch",
+		"stopOnEntry": false,
+		"args": [],
+		"env": {
+			"NODE_ENV": "development"
+		},
 		"outFiles": [
-			"${workspaceRoot}/build/**/*"
+			"${workspaceRoot}/build/**/*.js"
 		],
-		"name": "articles1CleanupTesting",
-		"program": "${workspaceRoot}/articles1CleanupTesting.ts"
+		"skipFiles": [
+			"${workspaceRoot}/node_modules/**/*.js",
+			"<node_internals>/**/*.js"
+		],
+		"trace": "verbose",
+		"preLaunchTask": null,
+		"restart": true,
+		"smartStep": true,
+		"sourceMaps": true,
+		"protocol": "legacy",
+		"name": "files2Cleanup",
+		"cwd": "${workspaceRoot}",
+		"program": "${workspaceRoot}/files2Cleanup.ts"
 	}]
 }

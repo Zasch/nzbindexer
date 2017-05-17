@@ -10,10 +10,10 @@ import * as cluster from 'cluster';
 import * as database from './lib/database';
 let mongoclient: Db;
 let source_collection;
-const source = 'files_complete';
+const source = 'files';
 
 cluster.setupMaster({
-	exec: 'files1ToReleasesWorker.ts',
+	exec: 'files2ToReleasesWorker.ts',
 	silent: false
 });
 

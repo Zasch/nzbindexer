@@ -5,6 +5,7 @@ const log = logger.child({
 });
 import { Db, Collection } from 'mongodb';
 import { config } from './config';
+import { ArticleStatus } from './data/consts';
 import { Timer } from './lib/timer';
 import * as cluster from 'cluster';
 import * as database from './lib/database';
@@ -32,7 +33,7 @@ function startMaster() {
 	database.connect((db: Db) => {
 		mongoclient = db;
 		source_collection = mongoclient.collection(source);
-		getDistinct(source_collection, 'key', (distinctkeys: Array<string>) => {
+		getDistinct(source_collection, 'key', { status: ArticleStatus.OK }, (distinctkeys: Array<string>) => {
 			Timer.start('parallel');
 			log.info(`found ${distinctkeys.length} distinct keys`);
 			keys = distinctkeys;
@@ -40,13 +41,13 @@ function startMaster() {
 			for (let i = 0; i < numCPUs; i++) {
 				cluster.fork();
 			}
-			mongoclient.close();
 		});
 	});
 	let exited = 0;
 	cluster.on('exit', () => {
 		exited++;
 		if (exited === numCPUs) {
+			mongoclient.close();
 			return log.info("all workers have exited");
 		}
 	});
@@ -67,8 +68,8 @@ function startMaster() {
 	});
 }
 
-function getDistinct(collection: Collection, field: string, callback: Function) {
-	collection.distinct(field, (error: any, result: Array<string>) => {
+function getDistinct(collection: Collection, field: string, filter: any, callback: Function) {
+	collection.distinct(field, filter, (error: any, result: Array<string>) => {
 		return callback(result);
 	});
 }

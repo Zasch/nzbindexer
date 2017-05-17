@@ -15,7 +15,7 @@ export class RedisQueue {
 	name: string;
 	redisclient = redis.connect();
 	event_handlers: EventHandler = {};
-	brpoplpushtimeout = 2;
+	brpoplpushtimeout = 4;
 	// queue's
 	storecompleted: boolean;
 	sourcequeue: string;
@@ -44,7 +44,7 @@ export class RedisQueue {
 		// super(); // for EventEmitter
 		this.draintimeout = setTimeout(() => {
 			this.should_call_drain = true;
-		}, 1000);
+		}, 2000);
 		this.depthinterval = setInterval(() => {
 			this.depth((count: number) => {
 				log.info(`queuedepth[${this.sourcequeue}]: ${count}`);

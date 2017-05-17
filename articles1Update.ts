@@ -4,7 +4,7 @@ const log = logger.child({
 	file: filename
 });
 import { config } from './config';
-import { Range } from './types';
+import { Range } from './data/interfaces';
 import { Db } from 'mongodb';
 import { RedisQueue } from './lib/queue';
 import { Timer } from './lib/timer';
@@ -68,6 +68,7 @@ function pushUpdateTasks(group: Range, stats: Range, callback: Function) {
 	const remaining = total % config.articles_per_connection;
 	for (let i = 0; i < fulltasks; i++) {
 		const task = {
+			group: config.group,
 			low: stats.high + (i * config.articles_per_connection) + 1,
 			high: stats.high + ((i + 1) * config.articles_per_connection)
 		};
@@ -76,12 +77,23 @@ function pushUpdateTasks(group: Range, stats: Range, callback: Function) {
 	}
 	if (remaining > 0) {
 		const task = {
+			group: config.group,
 			low: stats.high + (fulltasks * config.articles_per_connection) + 1,
 			high: stats.high + (fulltasks * config.articles_per_connection) + remaining
 		};
 		// console.log(task);
 		taskqueue.push(task);
 	}
+	// db.getCollection('articles').find({ $and: [ { id: { $gte: '5337902294' } }, { id: { $lte: '5338712293' } } ] }).count()
+	// for (let i = 5338702294; i <= 5338712293; i++) {
+	// 	// console.log(i);
+	// 	const task = {
+	// 		group: config.group,
+	// 		low: i,
+	// 		high: i
+	// 	};
+	// 	taskqueue.push(task);
+	// }
 	const dbvalue = {
 		low: stats.low,
 		high: stats.high + total

@@ -10,8 +10,8 @@ import * as database from './lib/database';
 let mongoclient: Db;
 let source_collection: Collection;
 let target_collection: Collection;
-const source = 'files_complete';
-const target = 'releases_complete';
+const source = 'files';
+const target = 'releases';
 
 if (cluster.isWorker) {
 	const worker_id = cluster.worker.id;
@@ -93,7 +93,7 @@ function mapFile(current: any) {
 	return {
 		subject: current.subject,
 		filename: current.filename,
-		file: current.file,
+		date: current.date,
 		totalbytes: current.totalbytes,
 		parts: current.parts,
 		complete: current.complete
@@ -136,6 +136,7 @@ function moveComplete(key: string, documents: Array<any>, callback: Function) {
 	let source_operations = [];
 	let target_operations = [];
 	const mapped = mapDocuments(documents);
+	log.info(`Creating: ${key}`);
 	source_operations.push(deleteManyByKey(key))
 	target_operations.push(insertOne(mapped));
 	// return callback();

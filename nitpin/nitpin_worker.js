@@ -244,6 +244,8 @@ class NitpinWorker extends EventEmitter {
 				len;
 			// Create finish function that handles everything when done
 			function finish(err) {
+				// console.log('finished', command);
+				// if (response) console.log('finished', response);
 				var buf,
 					i;
 				// Defuse the bomb (does nothing when called after explosion)
@@ -407,7 +409,6 @@ class NitpinWorker extends EventEmitter {
 	}
 
 	authenticate(callback) {
-		// console.log('authenticate', typeof callback);
 		var that = this;
 
 		function finish(err, response) {
@@ -668,7 +669,6 @@ class NitpinWorker extends EventEmitter {
 	}
 
 	list(wildmat, force, callback) {
-		// console.log('list', typeof callback);
 		if (typeof wildmat == 'function') {
 			callback = wildmat;
 			wildmat = '';
@@ -735,7 +735,6 @@ class NitpinWorker extends EventEmitter {
 	}
 
 	group(groupname, force, callback) {
-		// console.log('group', typeof callback);
 		var that = this;
 		if (typeof force == 'function') {
 			callback = force;
@@ -787,7 +786,6 @@ class NitpinWorker extends EventEmitter {
 	}
 
 	capabilities(force, callback) {
-		// console.log('capabilities', typeof callback);
 		if (typeof force == 'function') {
 			callback = force;
 			force = false;
@@ -871,7 +869,6 @@ class NitpinWorker extends EventEmitter {
 				// Try Xzver
 				if (hasXzver == null || hasXzver) {
 					that.submit('XZVER ' + first + '-' + last, true, true, function gotXzverResponse(err, response) {
-
 						if (err) {
 							// Xzver failed
 							that.info('cap.xzver', false);
@@ -904,7 +901,8 @@ class NitpinWorker extends EventEmitter {
 				}
 			}
 		], function done(err) {
-			// console.log('fetch complete', lines.length);
+			// console.log('fetch complete', group, first, last, err);
+			// if (lines && lines.length) console.log('fetch complete', lines.length);
 			var results,
 				record,
 				field,
@@ -972,7 +970,7 @@ class NitpinWorker extends EventEmitter {
 					if (conf.name === 'from') {
 						record['email'] = temp.split(' ').reduce((acc, current) => {
 							if (current.indexOf('@') !== -1) {
-								return current.replace('<', '').replace('>', '');
+								return current.replace('<', '').replace('>', '').replace('(', '').replace(')', '');
 							} else {
 								return acc;
 							}
@@ -995,7 +993,8 @@ class NitpinWorker extends EventEmitter {
 					// }
 					if (conf.name) record[conf.name] = temp;
 				}
-				// console.log(record);
+				record['group'] = group;
+				// TODO: maybe I should filter here
 				results.push(record);
 			}
 			callback(null, results);

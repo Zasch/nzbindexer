@@ -33,6 +33,7 @@ function startMaster() {
 	const wss = new ws.Server({
 		port: 9999
 	});
+	wss.on("headers", (a) => console.log(a));
 	for (let i = 0; i < numWorkerTreads; i++) {
 		cluster.fork();
 	}

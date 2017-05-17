@@ -4,7 +4,7 @@ const log = logger.child({
 	file: filename
 });
 import { config } from './config';
-import { Range } from './types';
+import { Range } from './data/interfaces';
 import { Db } from 'mongodb';
 import { RedisQueue } from './lib/queue';
 import { Timer } from './lib/timer';
@@ -69,6 +69,7 @@ function pushBackfillTasks(group: Range, stats: Range, callback: Function) {
 	const remaining = total % config.articles_per_connection;
 	for (let i = 0; i < fulltasks; i++) {
 		const task = {
+			group: config.group,
 			low: stats.low - ((i + 1) * config.articles_per_connection),
 			high: stats.low - (i * config.articles_per_connection) - 1,
 		};
@@ -77,6 +78,7 @@ function pushBackfillTasks(group: Range, stats: Range, callback: Function) {
 	}
 	if (remaining > 0) {
 		const task = {
+			group: config.group,
 			low: stats.low - (fulltasks * config.articles_per_connection) - remaining,
 			high: stats.low - (fulltasks * config.articles_per_connection) - 1
 		};

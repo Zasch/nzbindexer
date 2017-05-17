@@ -73,28 +73,38 @@ export class BulkProcessor {
 		updated: 0,
 		modified: 0,
 		removed: 0
-	}
+	};
+	results: any;
+
 	constructor(private collection: any, private batchsize: number) {
 		this.collection_name = collection.s.namespace;
 		this.processor = collection.initializeUnorderedBulkOp();
+		this.results = Object.assign(this.resultobject);
 	}
 
 	printErrors(result: BulkWriteResult) {
-		this.resultobject.inserted += result.nInserted || 0;
-		this.resultobject.modified += result.nModified || 0;
-		this.resultobject.removed += result.nRemoved || 0;
-		this.resultobject.updated += result.nUpdated || 0;
-		this.resultobject.upserted += result.nUpserted || 0;
-		let error = result.getWriteErrors().reduce((prev: any, current: any) => {
-			if (!prev) prev = {};
-			if (!prev[current.code]) prev[current.code] = {
-				count: 0,
-				message: current.errmsg.split(': {')[0]
-			}
-			prev[current.code].count++;
-			return prev;
-		}, undefined);
-		if (error) log.error(error, 'errors');
+		this.results.inserted += result.nInserted || 0;
+		this.results.modified += result.nModified || 0;
+		this.results.removed += result.nRemoved || 0;
+		this.results.updated += result.nUpdated || 0;
+		this.results.upserted += result.nUpserted || 0;
+		result.getWriteErrors().forEach((err: any) => {
+			// if (err.errmsg.indexOf('_id_ dup key') !== -1) log.error(err.errmsg);
+			log.error(err.errmsg);
+		});
+
+		// let error = result.getWriteErrors().reduce((prev: any, current: any) => {
+		// 	// console.log(current.)
+		// 	if (!prev) prev = {};
+		// 	if (!prev[current.code]) prev[current.code] = {
+		// 		count: 0,
+		// 		message: current.errmsg.split(': {')[0]
+		// 	}
+		// 	prev[current.code].count++;
+		// 	return prev;
+		// }, undefined);
+		// if (error) log.error(error, 'errors');
+		this.results = Object.assign(this.resultobject);
 	}
 
 	flush(callback?: Function) {
@@ -144,6 +154,6 @@ export class BulkProcessor {
 	// }
 
 	stats() {
-		return this.resultobject;
+		return this.results;
 	}
 }

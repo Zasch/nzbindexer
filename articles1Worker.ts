@@ -31,7 +31,7 @@ function worker() {
 		taskqueue.stop();
 		return setTimeout(() => {
 			process.exit(0);
-		}, 500);
+		}, 1000);
 	});
 	taskqueue.on('message', (task: any, result: RedisQueue) => {
 		if (timeout) clearTimeout(timeout);
@@ -47,13 +47,13 @@ function worker() {
 			cluster.worker.send({
 				cmd: 'done'
 			});
-		}, 200);
+		}, 1000);
 	});
 	taskqueue.start();
 }
 
 function processTask(task: any, callback: Function) {
-	nitpin.over(config.group, task.low, task.high, function gotMessages(error: any, messages: Array<any>) {
+	nitpin.over(task.group, task.low, task.high, function gotMessages(error: any, messages: Array<any>) {
 		if (error) {
 			log.error({
 				task,
@@ -75,25 +75,3 @@ function processTask(task: any, callback: Function) {
 		}
 	});
 }
-
-// function map(obj) {
-// 	return {
-// 		key: obj.email,
-// 		value: obj
-// 	};
-// }
-
-// function reduce(array) {
-// 	result = {};
-// 	array.forEach((item) => {
-// 		if (!result[item.key]) {
-// 			result[item.key] = {
-// 				total: 0,
-// 				items: []
-// 			};
-// 		}
-// 		result[item.key].total++;
-// 		result[item.key].items.push(item.value);
-// 	})
-// 	return result;
-// }

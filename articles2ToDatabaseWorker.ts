@@ -6,6 +6,8 @@ const log = logger.child({
 import { Db } from 'mongodb';
 import { config } from './config';
 import { SubjectExtracter } from './lib/subjectextracter';
+import { ArticleStatus } from './data/consts';
+// import { spamfilters } from './data/spam';
 import * as cluster from 'cluster';
 import * as database from './lib/database';
 
@@ -68,17 +70,70 @@ function processMessages(messages: Array<any>) {
 	});
 }
 
+
+
 function processMessage(message: any) {
+	if (message.subject.indexOf('efnet') === -1) {
+		return;
+	}
 	const article = Object.assign(message, new SubjectExtracter(message.subject));
 	article.date = new Date(article.date); // because JSON parse/stringify
 	article.created = new Date();
-	if (!article.filter) {
-		article._id = article.filename + '|' + article.part.index + 'of' + article.part.total + '|' + article.id;
-		article.key = article.filename + '|' + article.part.total + '|' + article.email; // for MR
+
+	// const filters = spamfilters[message.group];
+	// let spam = false;
+	// if (filters) {
+	// 	filters.forEach((filter: any) => {
+	// 		if (filter.regex.test(message[filter.field])) {
+	// 			spam = true;
+	// 		}
+	// 	})
+	// }
+	// if (spam) {
+	// 	return;
+	// }
+	switch (article.status) {
+		case ArticleStatus.OK:
+			article._id = article.filename + '|' + article.part.index + 'of' + article.part.total + '|' + article.id;
+			article.key = article.filename + '|' + article.part.total + '|' + article.email; // for MR
+			if (article.efnetid) {
+				article.key = article.efnetid + '|' + article.filename + '|' + article.part.total + '|' + article.email; // for MR
+			}
+			break;
+		case ArticleStatus.FILE_MISSING:
+			article._id = article.filename + '|' + article.part.index + 'of' + article.part.total + '|' + article.id;
+			article.key = article.filename + '|' + article.part.total + '|' + article.email; // for MR
+			if (article.efnetid) {
+				article.key = article.efnetid + '|' + article.filename + '|' + article.part.total + '|' + article.email; // for MR
+			}
+			break;
+		case ArticleStatus.PART_MISSING:
+			article._id = article.subject + '|' + article.id;
+			// article.key = article.filename + '|' + article.email + '|' + article.id;
+			break;
+		case ArticleStatus.REGEX_MISSING:
+			article._id = article.subject + '|' + article.id;
+			// article.key = article.filename + '|' + article.email + '|' + article.id;
+			break;
+		case ArticleStatus.EXTENSION_MISSING:
+			article._id = article.subject + '|' + article.id;
+			// article.key = article.filename + '|' + article.email + '|' + article.id;
+			break;
+		case ArticleStatus.FILENAME_MISSING:
+			article._id = article.subject + '|' + article.id;
+			// article.key = article.subject + '|' + article.id;
+			break;
+		default:
+			article._id = article.subject + '|' + article.id;
+			break;
+	}
+
+	if (article.status <= ArticleStatus.FILE_MISSING) {
 		articlescollection.insert(article);
 	} else {
-		article._id = article.subject + '|' + article.id;
 		filteredcollection.insert(article);
 	}
 	return;
 }
+
+
